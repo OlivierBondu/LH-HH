@@ -11,3 +11,16 @@
 *.lai
 *.la
 *.a
+
+# Executables
+*.exe
+
+# Root files
+*.root
+
+# Links to Delphes
+ExRootAnalysis
+classes
+
+# editor temp files
+.*.swp
