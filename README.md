@@ -1,7 +1,7 @@
 LH-HH
 =====
 
-1) run do_links (assume you have installed this repository as one subdirectory of Delphes-3.0.9)
+1) run do_links (assume you have installed this repository as one subdirectory of Delphes-3.0.10)
 ./do_links.sh
 
 2) compile
