@@ -26,6 +26,7 @@ int main(int argc, char* argv[])
 	// declare arguments
 	string inputfile;
 	string outputfile;
+	string outputtree;
 	// print out passed arguments
 	copy(argv, argv + argc, ostream_iterator<char*>(cout, " ")); cout << endl;
 	// argument parsing
@@ -36,6 +37,7 @@ int main(int argc, char* argv[])
 			("help,h", "produce help message")
 			("inputfile,i", po::value<string>(&inputfile)->default_value("../GluGluToHHTo2B2G_M-125_8TeV_madgraph_v2_DEL_v03.root"), "input file")
 			("outputfile,o", po::value<string>(&outputfile)->default_value("output.root"), "output file")
+			("outputtree,ot", po::value<string>(&outputtree)->default_value("GluGluToHHTo2B2G_8TeV"), "output tree")
 		;
 		po::variables_map vm;
 		po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -54,13 +56,54 @@ int main(int argc, char* argv[])
   //################################################
 
 	TChain *chain = new TChain("Delphes");
-	chain->Add("../delphes_output_test.root");	
+	chain->Add(inputfile.c_str());	
 	ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
-	TFile *outfile = new TFile("output.root", "RECREATE");
-	TTree *outtree = new TTree("diphoton", "reduced");
+	TFile *outfile = new TFile(outputfile.c_str(), "RECREATE");
+	TTree *outtree = new TTree(outputtree.c_str(), "selected events");
 
-	float gg_mass;
-	outtree->Branch("gg_mass", &gg_mass, "gg_mass/F");
+// declare output variables
+	float pho1_pt, pho1_eta, pho1_phi, pho1_e, pho1_mass;
+	float pho2_pt, pho2_eta, pho2_phi, pho2_e, pho2_mass;
+	float jet1_pt, jet1_eta, jet1_phi, jet1_e, jet1_mass;
+	float jet2_pt, jet2_eta, jet2_phi, jet2_e, jet2_mass;
+	float dipho_pt, dipho_eta, dipho_phi, dipho_e, dipho_mass;
+	float dijet_pt, dijet_eta, dijet_phi, dijet_e, dijet_mass;
+	float tetraphojet_pt, tetraphojet_eta, tetraphojet_phi, tetraphojet_e, tetraphojet_mass;
+	outtree->Branch("pho1_pt", pho1_ptpho1_pt, "pho1_pt/F");
+	outtree->Branch("pho1_eta", pho1_etapho1_eta, "pho1_eta/F");
+	outtree->Branch("pho1_phi", pho1_phipho1_phi, "pho1_phi/F");
+	outtree->Branch("pho1_e", pho1_epho1_e, "pho1_e/F");
+	outtree->Branch("pho1_mass", pho1_masspho1_mass, "pho1_mass/F");
+	outtree->Branch("pho2_pt", pho2_ptpho2_pt, "pho2_pt/F");
+	outtree->Branch("pho2_eta", pho2_etapho2_eta, "pho2_eta/F");
+	outtree->Branch("pho2_phi", pho2_phipho2_phi, "pho2_phi/F");
+	outtree->Branch("pho2_e", pho2_epho2_e, "pho2_e/F");
+	outtree->Branch("pho2_mass", pho2_masspho2_mass, "pho2_mass/F");
+	outtree->Branch("jet1_pt", jet1_ptjet1_pt, "jet1_pt/F");
+	outtree->Branch("jet1_eta", jet1_etajet1_eta, "jet1_eta/F");
+	outtree->Branch("jet1_phi", jet1_phijet1_phi, "jet1_phi/F");
+	outtree->Branch("jet1_e", jet1_ejet1_e, "jet1_e/F");
+	outtree->Branch("jet1_mass", jet1_massjet1_mass, "jet1_mass/F");
+	outtree->Branch("jet2_pt", jet2_ptjet2_pt, "jet2_pt/F");
+	outtree->Branch("jet2_eta", jet2_etajet2_eta, "jet2_eta/F");
+	outtree->Branch("jet2_phi", jet2_phijet2_phi, "jet2_phi/F");
+	outtree->Branch("jet2_e", jet2_ejet2_e, "jet2_e/F");
+	outtree->Branch("jet2_mass", jet2_massjet2_mass, "jet2_mass/F");
+	outtree->Branch("dipho_pt", dipho_ptdipho_pt, "dipho_pt/F");
+	outtree->Branch("dipho_eta", dipho_etadipho_eta, "dipho_eta/F");
+	outtree->Branch("dipho_phi", dipho_phidipho_phi, "dipho_phi/F");
+	outtree->Branch("dipho_e", dipho_edipho_e, "dipho_e/F");
+	outtree->Branch("dipho_mass", dipho_massdipho_mass, "dipho_mass/F");
+	outtree->Branch("dijet_pt", dijet_ptdijet_pt, "dijet_pt/F");
+	outtree->Branch("dijet_eta", dijet_etadijet_eta, "dijet_eta/F");
+	outtree->Branch("dijet_phi", dijet_phidijet_phi, "dijet_phi/F");
+	outtree->Branch("dijet_e", dijet_edijet_e, "dijet_e/F");
+	outtree->Branch("dijet_mass", dijet_massdijet_mass, "dijet_mass/F");
+	outtree->Branch("tetraphojet_pt", tetraphojet_pttetraphojet_pt, "tetraphojet_pt/F");
+	outtree->Branch("tetraphojet_eta", tetraphojet_etatetraphojet_eta, "tetraphojet_eta/F");
+	outtree->Branch("tetraphojet_phi", tetraphojet_phitetraphojet_phi, "tetraphojet_phi/F");
+	outtree->Branch("tetraphojet_e", tetraphojet_etetraphojet_e, "tetraphojet_e/F");
+	outtree->Branch("tetraphojet_mass", tetraphojet_masstetraphojet_mass, "tetraphojet_mass/F");
 
 	TClonesArray *branchPhoton = treeReader->UseBranch("Photon");
 
@@ -68,6 +111,7 @@ int main(int argc, char* argv[])
 	{
 		treeReader->ReadEntry(ievt);
 		if(DEBUG) cout << "ievt= " << ievt << endl;
+    // diphoton selection
 		if(branchPhoton->GetEntries() < 2) continue;
 		Photon *photon1 = (Photon*) branchPhoton->At(0);
 		Photon *photon2 = (Photon*) branchPhoton->At(1);
@@ -87,3 +131,9 @@ int main(int argc, char* argv[])
 
 	return 0;
 }
+
+// Local Variables:
+// mode: c++
+// c-basic-offset: 4
+// End:
+// vim: tabstop=4 expandtab shiftwidth=4 softtabstop=4
