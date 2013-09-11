@@ -3,6 +3,7 @@
 // C++ headers
 #include <iostream>
 #include <string>
+#include <boost/program_options.hpp>
 // ROOT headers
 #include "TROOT.h"
 #include <TSystem.h>
@@ -18,9 +19,40 @@
 #define DEBUG 0
 // namespaces
 using namespace std;
+namespace po = boost::program_options;
 
-int main()
+int main(int argc, char* argv[])
 {
+	// declare arguments
+	string inputfile;
+	string outputfile;
+	// print out passed arguments
+	copy(argv, argv + argc, ostream_iterator<char*>(cout, " ")); cout << endl;
+	// argument parsing
+	try
+	{
+		po::options_description desc("Allowed options");
+		desc.add_options()
+			("help,h", "produce help message")
+			("inputfile,i", po::value<string>(&inputfile)->default_value("../GluGluToHHTo2B2G_M-125_8TeV_madgraph_v2_DEL_v03.root"), "input file")
+			("outputfile,o", po::value<string>(&outputfile)->default_value("output.root"), "output file")
+		;
+		po::variables_map vm;
+		po::store(po::parse_command_line(argc, argv, desc), vm);
+		po::notify(vm);
+		if (vm.count("help")) {
+			cout << desc << "\n";
+			return 1;
+		}
+	} catch(exception& e) {
+		cerr << "error: " << e.what() << "\n";
+		return 1;
+	} catch(...) {
+		cerr << "Exception of unknown type!\n";
+	}
+	// end of argument parsing
+  //################################################
+
 	TChain *chain = new TChain("Delphes");
 	chain->Add("../delphes_output_test.root");	
 	ExRootTreeReader *treeReader = new ExRootTreeReader(chain);

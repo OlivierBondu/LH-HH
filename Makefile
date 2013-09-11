@@ -10,6 +10,9 @@ DELPHES = -I.
 ROOTCFLAGS    = $(shell root-config --cflags)
 ROOTGLIBS     = $(shell root-config --glibs)
 
+# boost
+BOOSTFLAGS = -I${BOOST_ROOT}include/boost-1_48
+BOOSTLIBS = -L${BOOST_ROOT}lib -lboost_program_options-gcc43-mt-1_48
 
 # File names
 SOURCES = $(wildcard *.cc)
@@ -22,15 +25,15 @@ EXEC = $(SOURCES:.cc=.exe)
 
 # To compile
 %.exe: %.o ExRootTreeReader.o
-	$(CC) $(ROOTGLIBS) -L`pwd` -lDelphes ExRootTreeReader.o $< -o $@
+	$(CC) $(CC_FLAGS) $(ROOTGLIBS) $(BOOSTLIBS) -L`pwd` -lDelphes ExRootTreeReader.o $< -o $@
 
 # To obtain object files
 %.o: %.cc
-	$(CC) -c $(CC_FLAGS) $(ROOTCFLAGS) $(ROOTGLIBS) $(DELPHES) -L`pwd` -lDelphes $< -o $@
+	$(CC) -c $(CC_FLAGS) $(ROOTCFLAGS) $(BOOSTFLAGS) $(DELPHES) $< -o $@
 
 # needed everywhere: ExRootTreeReader
 ExRootTreeReader.o: ExRootAnalysis/ExRootTreeReader.cc ExRootAnalysis/ExRootTreeReader.h
-	$(CC) $(CCFLAGS) $(ROOTFLAGS) $(ROOTGLIBS) $(DELPHES) -c ExRootAnalysis/ExRootTreeReader.cc
+	$(CC) $(CCFLAGS) $(ROOTGLIBS) $(DELPHES) -c ExRootAnalysis/ExRootTreeReader.cc
 
 # To remove generated files
 clean:
