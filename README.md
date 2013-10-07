@@ -7,6 +7,11 @@ LH-HH
       <li>./do_links.sh</li>
     </ul>
   </li>
+  <li>setup (used to setup correct root version, compatible with .root creation on lxplus, and libraries directory while running)
+    <ul>
+      <li>source setup.sh</li>
+    </ul>
+  </li>
   <li>compile (where BLA is the program defined in BLA.cc)
     <ul>
       <li>make BLA.exe</li>
