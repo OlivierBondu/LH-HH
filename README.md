@@ -15,6 +15,7 @@ LH-HH
   <li>run
     <ul>
       <li>./BLA.exe</li>
+      <li>./ntupleProducerVbfHHbbXX.exe -i ../data/delphes_output_vbfHH_MCHM4_0_06_13_GEN.root</li>
     </ul>
   </li>
 </ul>
