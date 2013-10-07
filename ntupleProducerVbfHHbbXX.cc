@@ -95,6 +95,11 @@ int main (int argc, char **argv) {
  float bjetpt1;
  float bjetpt2;
 
+ float jeteta1;
+ float jeteta2;
+ float bjeteta1;
+ float bjeteta2;
+ 
  float mjj;
  float mbb;
  
@@ -102,6 +107,11 @@ int main (int argc, char **argv) {
  outtree->Branch("jetpt2",  &jetpt2,  "jetpt2/F");
  outtree->Branch("bjetpt1", &bjetpt1, "bjetpt1/F");
  outtree->Branch("bjetpt2", &bjetpt2, "bjetpt2/F");
+
+ outtree->Branch("jeteta1",  &jeteta1,  "jeteta1/F");
+ outtree->Branch("jeteta2",  &jeteta2,  "jeteta2/F");
+ outtree->Branch("bjeteta1", &bjeteta1, "bjeteta1/F");
+ outtree->Branch("bjeteta2", &bjeteta2, "bjeteta2/F");
  
  outtree->Branch("mjj", &mjj, "mjj/F");
  outtree->Branch("mbb", &mbb, "mbb/F");
@@ -292,14 +302,27 @@ int main (int argc, char **argv) {
   }  
   
   
+  //---- save information
+  
   jetpt1 = Jet1.Pt();
   jetpt2 = Jet2.Pt();
- 
   bjetpt1 = bJet1.Pt();
   bjetpt2 = bJet2.Pt();
   
+  jeteta1 = Jet1.Eta();
+  jeteta2 = Jet2.Eta();
+  bjeteta1 = bJet1.Eta();
+  bjeteta2 = bJet2.Eta();
+  
   mjj = (Jet1 +  Jet2 ).M();
   mbb = (bJet1 + bJet2).M();
+  
+  
+  //---- save met
+  
+  //---- same leptons
+  
+  
   
   outtree->Fill();
  }
