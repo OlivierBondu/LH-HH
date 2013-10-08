@@ -82,7 +82,7 @@ int main (int argc, char **argv) {
  
  
  
- 
+ float HiggsMass = 125.;
  
  TChain *chain = new TChain("Delphes");
  chain->Add(inputfile.c_str());      
@@ -103,6 +103,37 @@ int main (int argc, char **argv) {
  float mjj;
  float mbb;
  
+ //---- h>bb
+ float hbb_pt;
+ float hbb_eta;
+ float hbb_phi;
+ 
+ //---- h>WW
+ float hww_pt;
+ float hww_phi;
+ float hww_etap; //---- ambiguity on the sign
+ float hww_etam;
+ 
+ float pt1;
+ float pt2;
+ float nlep;
+ float channel;
+ float mll;
+ float dphill;
+ 
+ float pfmet;
+ 
+ //---- x>hh_m (ww)
+ float xhh_m_ww_pt;
+ float xhh_m_ww_eta;
+ float xhh_m_ww_phi;
+ float xhh_m_ww_m;
+ float xhh_p_ww_pt;
+ float xhh_p_ww_eta;
+ float xhh_p_ww_phi;
+ float xhh_p_ww_m;
+ 
+ 
  outtree->Branch("jetpt1",  &jetpt1,  "jetpt1/F");
  outtree->Branch("jetpt2",  &jetpt2,  "jetpt2/F");
  outtree->Branch("bjetpt1", &bjetpt1, "bjetpt1/F");
@@ -115,6 +146,33 @@ int main (int argc, char **argv) {
  
  outtree->Branch("mjj", &mjj, "mjj/F");
  outtree->Branch("mbb", &mbb, "mbb/F");
+
+ outtree->Branch("hbb_pt", &hbb_pt, "hbb_pt/F");
+ outtree->Branch("hbb_eta", &hbb_eta, "hbb_eta/F");
+ outtree->Branch("hbb_phi", &hbb_phi, "hbb_phi/F");
+ 
+ outtree->Branch("hww_pt", &hww_pt, "hww_pt/F");
+ outtree->Branch("hww_etap", &hww_etap, "hww_etap/F");
+ outtree->Branch("hww_etam", &hww_etam, "hww_etam/F");
+ outtree->Branch("hww_phi", &hww_phi, "hww_phi/F");
+
+ outtree->Branch("pfmet", &pfmet, "pfmet/F");
+ outtree->Branch("pt1", &pt1, "pt1/F");
+ outtree->Branch("pt2", &pt2, "pt2/F");
+ outtree->Branch("nlep", &nlep, "nlep/F");
+ outtree->Branch("channel", &channel, "channel/F");
+ outtree->Branch("mll", &mll, "mll/F");
+ outtree->Branch("dphill", &dphill, "dphill/F");
+  
+ outtree->Branch("xhh_p_ww_pt",  &xhh_p_ww_pt,  "xhh_p_ww_pt/F");
+ outtree->Branch("xhh_p_ww_eta", &xhh_p_ww_eta, "xhh_p_ww_eta/F");
+ outtree->Branch("xhh_p_ww_phi", &xhh_p_ww_phi, "xhh_p_ww_phi/F");
+ outtree->Branch("xhh_p_ww_m",   &xhh_p_ww_m,   "xhh_p_ww_m/F");
+ 
+ outtree->Branch("xhh_m_ww_pt",  &xhh_m_ww_pt,  "xhh_m_ww_pt/F");
+ outtree->Branch("xhh_m_ww_eta", &xhh_m_ww_eta, "xhh_m_ww_eta/F");
+ outtree->Branch("xhh_m_ww_phi", &xhh_m_ww_phi, "xhh_m_ww_phi/F");
+ outtree->Branch("xhh_m_ww_m",   &xhh_m_ww_m,   "xhh_m_ww_m/F");
  
  
  //---- objects in Delphes format 
@@ -128,10 +186,14 @@ int main (int argc, char **argv) {
  TClonesArray *branchEFlowMuon = treeReader->UseBranch("EFlowMuon");
  TClonesArray *branchJet = treeReader->UseBranch("Jet");
  
+ TClonesArray *branchMissingET = treeReader->UseBranch("MissingET");
+ 
+ 
  GenParticle *particle;
  Electron *electron;
  Photon *photon;
  Muon *muon;
+ MissingET *met;
  
  Track *track;
  Tower *tower;
@@ -195,16 +257,11 @@ int main (int argc, char **argv) {
   it_type_m_lepton++;
   int flav2 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
   
-  int nlep = 0;
+  nlep = 0;
   for(it_type_m_lepton = m_maxptleptons.begin(); it_type_m_lepton != m_maxptleptons.end(); it_type_m_lepton++) {
    if ( -(it_type_m_lepton->first) > 10) nlep++;
   }
- 
-  // # mumu #    channel == 0
-  // # mue #     channel == 3
-  // # emu #     channel == 2
-  // # ee #      channel == 1
-  
+   
   TLorentzVector l1, l2;
   it_type_m_lepton = m_maxptleptons.begin();
   
@@ -314,15 +371,155 @@ int main (int argc, char **argv) {
   bjeteta1 = bJet1.Eta();
   bjeteta2 = bJet2.Eta();
   
+  TLorentzVector hbb;
+  hbb = bJet1 + bJet2;
+  
   mjj = (Jet1 +  Jet2 ).M();
   mbb = (bJet1 + bJet2).M();
+ 
+  //---- h>bb
+  hbb_pt = (bJet1 +  bJet2 ).Pt();
+  hbb_eta = (bJet1 +  bJet2 ).Eta();
+  hbb_phi = (bJet1 +  bJet2 ).Phi();
+ 
+  
+  //-------------
+  //---- met ----
+  
+  if(branchMissingET->GetEntriesFast() > 0) {
+   met   = (MissingET*) branchMissingET->At(0);
+   pfmet = met->MET;
+  }
+  else {
+   pfmet = -99;
+  }
   
   
-  //---- save met
+  //-----------------
+  //---- leptons ----
   
-  //---- same leptons
+  xhh_m_ww_pt  = -99;
+  xhh_m_ww_eta = -99;
+  xhh_m_ww_phi = -99;
+  xhh_m_ww_m   = -99;
+  
+  xhh_p_ww_pt  = -99;
+  xhh_p_ww_eta = -99;
+  xhh_p_ww_phi = -99;
+  xhh_p_ww_m   = -99;    
+  
+  //---- at least 2 leptons ----
+  
+  if (m_maxptleptons.size() >= 2) {
+  
+  // kind = 0/1 if m/e
+  
+  std::map<float, int>::iterator it_type_m_lepton = m_maxptleptons.begin();
+  int flav1 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
+  pt1 = - it_type_m_lepton->first;
+  
+  it_type_m_lepton++;
+  int flav2 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
+  pt2 = - it_type_m_lepton->first;
+  
+  nlep = 0;
+  for(it_type_m_lepton = m_maxptleptons.begin(); it_type_m_lepton != m_maxptleptons.end(); it_type_m_lepton++) {
+   if ( -(it_type_m_lepton->first) > 10) nlep++;
+  }
+    
+  //                       ee/mm          e   m           m    e
+  channel =             flav1*flav2+2*(flav1>flav2)+3*(flav1<flav2);
+  
+  // # mumu #    channel == 0
+  // # mue #     channel == 3
+  // # emu #     channel == 2
+  // # ee #      channel == 1
+  
+  pt1 = l1.Pt();
+  pt2 = l2.Pt();
+  mll = (l1+l2).M();
+  dphill = l1.DeltaPhi(l2);
   
   
+  TLorentzVector hww;
+  TLorentzVector hwwp;
+  TLorentzVector hwwm;
+  
+  if (pfmet != -99) {
+   //   HiggsMass
+   //---- h>ww
+   TLorentzVector vmet;
+   //--- IMPORTANT: h>ww, mll ~ mvv, otherwise something missing in higgs kinematic reconstruction
+   vmet.SetPtEtaPhiM(met->MET, 0, met->Phi, mll);
+   
+   hww = l1 + l2 + vmet;
+   
+   hww_pt =  (l1 + l2 + vmet ).Pt();
+   hww_phi = (l1 + l2 + vmet ).Phi();
+   
+   //---- kinematic fit for eta
+   float sintheta2 = (hww_pt*hww_pt / (hww.E() * hww.E() - HiggsMass*HiggsMass ));
+   float sintheta;
+   if (sintheta2 > 0) sintheta = sqrt (sintheta2);
+   if (sintheta2 > 0) {
+    hww_etap = - log (tan ( asin ( sintheta ) / 2. )) ;
+    hww_etam = - log (tan ( asin (-sintheta ) / 2. )) ;
+    
+    hwwp = hww;
+    std::cout << " hww_pt = " << hww_pt << std::endl;
+    hwwp.SetPtEtaPhiM(hww_pt, hww_etap, hww_phi, HiggsMass);
+    hwwm.SetPtEtaPhiM(hww_pt, hww_etam, hww_phi, HiggsMass);
+    
+    //---- x>hh
+    TLorentzVector xhh_p;
+    TLorentzVector xhh_m;
+    xhh_p = hwwm + hbb;
+    xhh_m = hwwp + hbb;
+    
+    xhh_m_ww_pt  = xhh_m.Pt();
+    xhh_m_ww_eta = xhh_m.Eta();
+    xhh_m_ww_phi = xhh_m.Phi();
+    xhh_m_ww_m   = xhh_m.M();
+
+    xhh_p_ww_pt  = xhh_p.Pt();
+    xhh_p_ww_eta = xhh_p.Eta();
+    xhh_p_ww_phi = xhh_p.Phi();
+    xhh_p_ww_m   = xhh_p.M();
+    
+   }
+   else {
+    hww_etap = -99;
+    hww_etam = -99;
+   }
+   
+  }
+  else {
+   //---- h>ww
+   hww_pt = -99;
+   hww_etam = -99;
+   hww_etap = -99;
+   hww_phi = -99;
+  }
+  
+  
+  }
+  else {
+   pt1 = -99;
+   pt2 = -99;
+   nlep = m_maxptleptons.size();
+   channel = -1;
+   mll = -99;
+   dphill = -99;
+  
+   hww_pt = -99;
+   hww_etam = -99;
+   hww_etap = -99;
+   hww_phi = -99;
+  }
+  
+   
+  
+   
   
   outtree->Fill();
  }
