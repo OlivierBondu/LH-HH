@@ -94,7 +94,7 @@ int main (int argc, char **argv) {
  float jetpt2;
  float bjetpt1;
  float bjetpt2;
-
+ 
  float jeteta1;
  float jeteta2;
  float bjeteta1;
@@ -109,6 +109,7 @@ int main (int argc, char **argv) {
  float hbb_phi;
  
  //---- h>WW
+ float hww_mt;
  float hww_pt;
  float hww_phi;
  float hww_etap; //---- ambiguity on the sign
@@ -124,6 +125,8 @@ int main (int argc, char **argv) {
  float pfmet;
  
  //---- x>hh_m (ww)
+ float xhh_ww_mt;
+ 
  float xhh_m_ww_pt;
  float xhh_m_ww_eta;
  float xhh_m_ww_phi;
@@ -138,7 +141,7 @@ int main (int argc, char **argv) {
  outtree->Branch("jetpt2",  &jetpt2,  "jetpt2/F");
  outtree->Branch("bjetpt1", &bjetpt1, "bjetpt1/F");
  outtree->Branch("bjetpt2", &bjetpt2, "bjetpt2/F");
-
+ 
  outtree->Branch("jeteta1",  &jeteta1,  "jeteta1/F");
  outtree->Branch("jeteta2",  &jeteta2,  "jeteta2/F");
  outtree->Branch("bjeteta1", &bjeteta1, "bjeteta1/F");
@@ -146,16 +149,17 @@ int main (int argc, char **argv) {
  
  outtree->Branch("mjj", &mjj, "mjj/F");
  outtree->Branch("mbb", &mbb, "mbb/F");
-
+ 
  outtree->Branch("hbb_pt", &hbb_pt, "hbb_pt/F");
  outtree->Branch("hbb_eta", &hbb_eta, "hbb_eta/F");
  outtree->Branch("hbb_phi", &hbb_phi, "hbb_phi/F");
  
+ outtree->Branch("hww_mt", &hww_mt, "hww_mt/F");
  outtree->Branch("hww_pt", &hww_pt, "hww_pt/F");
  outtree->Branch("hww_etap", &hww_etap, "hww_etap/F");
  outtree->Branch("hww_etam", &hww_etam, "hww_etam/F");
  outtree->Branch("hww_phi", &hww_phi, "hww_phi/F");
-
+ 
  outtree->Branch("pfmet", &pfmet, "pfmet/F");
  outtree->Branch("pt1", &pt1, "pt1/F");
  outtree->Branch("pt2", &pt2, "pt2/F");
@@ -163,7 +167,9 @@ int main (int argc, char **argv) {
  outtree->Branch("channel", &channel, "channel/F");
  outtree->Branch("mll", &mll, "mll/F");
  outtree->Branch("dphill", &dphill, "dphill/F");
-  
+ 
+ outtree->Branch("xhh_ww_mt",  &xhh_ww_mt,  "xhh_ww_mt/F");
+ 
  outtree->Branch("xhh_p_ww_pt",  &xhh_p_ww_pt,  "xhh_p_ww_pt/F");
  outtree->Branch("xhh_p_ww_eta", &xhh_p_ww_eta, "xhh_p_ww_eta/F");
  outtree->Branch("xhh_p_ww_phi", &xhh_p_ww_phi, "xhh_p_ww_phi/F");
@@ -226,7 +232,7 @@ int main (int argc, char **argv) {
   /**
    * check for leptons (at most 2!): 
    * if there is a lepton, then remove the corresponding jet
-  */
+   */
   
   ///---- take the two highest pt leptons in the event (m or e)
   //    maps are ordered in ascending order
@@ -261,7 +267,7 @@ int main (int argc, char **argv) {
   for(it_type_m_lepton = m_maxptleptons.begin(); it_type_m_lepton != m_maxptleptons.end(); it_type_m_lepton++) {
    if ( -(it_type_m_lepton->first) > 10) nlep++;
   }
-   
+  
   TLorentzVector l1, l2;
   it_type_m_lepton = m_maxptleptons.begin();
   
@@ -335,7 +341,7 @@ int main (int argc, char **argv) {
   
   
   std::map<float, int>::iterator it_type_m_maxmjj = m_maxmjj.begin();
-    
+  
   if (it_type_m_maxmjj->second == 1) { Jet1 = jet1; Jet2 = jet2; bJet1 = jet3; bJet2 = jet4; };
   if (it_type_m_maxmjj->second == 2) { Jet1 = jet1; Jet2 = jet3; bJet1 = jet2; bJet2 = jet4; };
   if (it_type_m_maxmjj->second == 3) { Jet1 = jet1; Jet2 = jet4; bJet1 = jet2; bJet2 = jet3; };
@@ -350,7 +356,7 @@ int main (int argc, char **argv) {
    Jet1 = Jet2;
    Jet2 = tempjet;
   }
-
+  
   //---- sub-order in pt: bjetpt1 > bjetpt2
   if (bJet1.Pt() < bJet2.Pt()) {
    TLorentzVector tempjet = bJet1;
@@ -376,12 +382,12 @@ int main (int argc, char **argv) {
   
   mjj = (Jet1 +  Jet2 ).M();
   mbb = (bJet1 + bJet2).M();
- 
+  
   //---- h>bb
   hbb_pt = (bJet1 +  bJet2 ).Pt();
   hbb_eta = (bJet1 +  bJet2 ).Eta();
   hbb_phi = (bJet1 +  bJet2 ).Phi();
- 
+  
   
   //-------------
   //---- met ----
@@ -397,6 +403,8 @@ int main (int argc, char **argv) {
   
   //-----------------
   //---- leptons ----
+  hww_mt = -99;
+  xhh_ww_mt = -99.;
   
   xhh_m_ww_pt  = -99;
   xhh_m_ww_eta = -99;
@@ -411,97 +419,107 @@ int main (int argc, char **argv) {
   //---- at least 2 leptons ----
   
   if (m_maxptleptons.size() >= 2) {
-  
-  // kind = 0/1 if m/e
-  
-  std::map<float, int>::iterator it_type_m_lepton = m_maxptleptons.begin();
-  int flav1 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
-  pt1 = - it_type_m_lepton->first;
-  
-  it_type_m_lepton++;
-  int flav2 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
-  pt2 = - it_type_m_lepton->first;
-  
-  nlep = 0;
-  for(it_type_m_lepton = m_maxptleptons.begin(); it_type_m_lepton != m_maxptleptons.end(); it_type_m_lepton++) {
-   if ( -(it_type_m_lepton->first) > 10) nlep++;
-  }
-    
-  //                       ee/mm          e   m           m    e
-  channel =             flav1*flav2+2*(flav1>flav2)+3*(flav1<flav2);
-  
-  // # mumu #    channel == 0
-  // # mue #     channel == 3
-  // # emu #     channel == 2
-  // # ee #      channel == 1
-  
-  pt1 = l1.Pt();
-  pt2 = l2.Pt();
-  mll = (l1+l2).M();
-  dphill = l1.DeltaPhi(l2);
-  
-  
-  TLorentzVector hww;
-  TLorentzVector hwwp;
-  TLorentzVector hwwm;
-  
-  if (pfmet != -99) {
-   //   HiggsMass
-   //---- h>ww
-   TLorentzVector vmet;
-   //--- IMPORTANT: h>ww, mll ~ mvv, otherwise something missing in higgs kinematic reconstruction
-   vmet.SetPtEtaPhiM(met->MET, 0, met->Phi, mll);
    
-   hww = l1 + l2 + vmet;
+   // kind = 0/1 if m/e
    
-   hww_pt =  (l1 + l2 + vmet ).Pt();
-   hww_phi = (l1 + l2 + vmet ).Phi();
+   std::map<float, int>::iterator it_type_m_lepton = m_maxptleptons.begin();
+   int flav1 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
+   pt1 = - it_type_m_lepton->first;
    
-   //---- kinematic fit for eta
-   float sintheta2 = (hww_pt*hww_pt / (hww.E() * hww.E() - HiggsMass*HiggsMass ));
-   float sintheta;
-   if (sintheta2 > 0) sintheta = sqrt (sintheta2);
-   if (sintheta2 > 0) {
-    hww_etap = - log (tan ( asin ( sintheta ) / 2. )) ;
-    hww_etam = - log (tan ( asin (-sintheta ) / 2. )) ;
+   it_type_m_lepton++;
+   int flav2 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
+   pt2 = - it_type_m_lepton->first;
+   
+   nlep = 0;
+   for(it_type_m_lepton = m_maxptleptons.begin(); it_type_m_lepton != m_maxptleptons.end(); it_type_m_lepton++) {
+    if ( -(it_type_m_lepton->first) > 10) nlep++;
+   }
+   
+   //                       ee/mm          e   m           m    e
+   channel =             flav1*flav2+2*(flav1>flav2)+3*(flav1<flav2);
+   
+   // # mumu #    channel == 0
+   // # mue #     channel == 3
+   // # emu #     channel == 2
+   // # ee #      channel == 1
+   
+   pt1 = l1.Pt();
+   pt2 = l2.Pt();
+   mll = (l1+l2).M();
+   dphill = l1.DeltaPhi(l2);
+   
+   
+   TLorentzVector hww;
+   TLorentzVector hwwp;
+   TLorentzVector hwwm;
+   
+   if (pfmet != -99) {
+    //   HiggsMass
+    //---- h>ww
+    TLorentzVector vmet;
+    //--- IMPORTANT: h>ww, mll ~ mvv, otherwise something missing in higgs kinematic reconstruction
+    vmet.SetPtEtaPhiM(met->MET, 0, met->Phi, mll);
     
-    hwwp = hww;
-    std::cout << " hww_pt = " << hww_pt << std::endl;
-    hwwp.SetPtEtaPhiM(hww_pt, hww_etap, hww_phi, HiggsMass);
-    hwwm.SetPtEtaPhiM(hww_pt, hww_etam, hww_phi, HiggsMass);
+    hww = l1 + l2 + vmet;
     
-    //---- x>hh
-    TLorentzVector xhh_p;
-    TLorentzVector xhh_m;
-    xhh_p = hwwm + hbb;
-    xhh_m = hwwp + hbb;
+    hww_pt =  (l1 + l2 + vmet ).Pt();
+    hww_phi = (l1 + l2 + vmet ).Phi();
     
-    xhh_m_ww_pt  = xhh_m.Pt();
-    xhh_m_ww_eta = xhh_m.Eta();
-    xhh_m_ww_phi = xhh_m.Phi();
-    xhh_m_ww_m   = xhh_m.M();
-
-    xhh_p_ww_pt  = xhh_p.Pt();
-    xhh_p_ww_eta = xhh_p.Eta();
-    xhh_p_ww_phi = xhh_p.Phi();
-    xhh_p_ww_m   = xhh_p.M();
+    //--- transverse mass
+    hww_mt = sqrt((l1.Pt() + l2.Pt() + vmet.Pt())*(l1.Pt() + l2.Pt() + vmet.Pt()) - hww_pt*hww_pt);
+    
+    //---- kinematic fit for eta
+    float sintheta2 = (hww_pt*hww_pt / (hww.E() * hww.E() - HiggsMass*HiggsMass ));
+    float sintheta;
+    if (sintheta2 > 0) sintheta = sqrt (sintheta2);
+    if (sintheta2 > 0) {
+     hww_etap = - log (tan ( asin ( sintheta ) / 2. )) ;
+     hww_etam = - log (tan ( asin (-sintheta ) / 2. )) ;
+     
+     hwwp = hww;
+     //     std::cout << " hww_pt = " << hww_pt << std::endl;
+     hwwp.SetPtEtaPhiM(hww_pt, hww_etap, hww_phi, HiggsMass);
+     hwwm.SetPtEtaPhiM(hww_pt, hww_etam, hww_phi, HiggsMass);
+     
+     //---- x>hh
+     TLorentzVector xhh;
+     xhh = hww + hbb;
+     
+     TLorentzVector xhh_p;
+     TLorentzVector xhh_m;
+     xhh_p = hwwm + hbb;
+     xhh_m = hwwp + hbb;
+     
+     xhh_m_ww_pt  = xhh_m.Pt();
+     xhh_m_ww_eta = xhh_m.Eta();
+     xhh_m_ww_phi = xhh_m.Phi();
+     xhh_m_ww_m   = xhh_m.M();
+     
+     xhh_p_ww_pt  = xhh_p.Pt();
+     xhh_p_ww_eta = xhh_p.Eta();
+     xhh_p_ww_phi = xhh_p.Phi();
+     xhh_p_ww_m   = xhh_p.M();
+     
+     
+     //--- transverse mass
+     xhh_ww_mt = sqrt((l1.Pt() + l2.Pt() + vmet.Pt() + bJet1.Pt() + bJet2.Pt())*(l1.Pt() + l2.Pt() + vmet.Pt() + bJet1.Pt() + bJet2.Pt()) - xhh.Pt()*xhh.Pt());
+     
+    }
+    else {
+     hww_etap = -99;
+     hww_etam = -99;
+    }
     
    }
    else {
-    hww_etap = -99;
+    //---- h>ww
+    hww_pt = -99;
     hww_etam = -99;
+    hww_etap = -99;
+    hww_phi = -99;
    }
    
-  }
-  else {
-   //---- h>ww
-   hww_pt = -99;
-   hww_etam = -99;
-   hww_etap = -99;
-   hww_phi = -99;
-  }
-  
-  
+   
   }
   else {
    pt1 = -99;
@@ -510,16 +528,16 @@ int main (int argc, char **argv) {
    channel = -1;
    mll = -99;
    dphill = -99;
-  
+   
    hww_pt = -99;
    hww_etam = -99;
    hww_etap = -99;
    hww_phi = -99;
   }
   
-   
   
-   
+  
+  
   
   outtree->Fill();
  }
