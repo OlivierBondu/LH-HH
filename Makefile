@@ -1,5 +1,6 @@
-# CC = g++
-CC = /usr/bin/g++-4.4
+CC = $(CC_ENV)
+#CC = g++
+#CC = /usr/bin/g++-4.4
 CCFLAGS = -Wall -g
 SOURCES =
 ROOFITLIBS = -lRooFit -lRooFitCore -lMinuit -lFoam
@@ -12,8 +13,8 @@ ROOTCFLAGS = $(shell root-config --cflags)
 ROOTGLIBS = $(shell root-config --glibs)
 
 # boost
-BOOSTFLAGS = -I$/usr/include/boost
-BOOSTLIBS = -lboost_program_options
+BOOSTFLAGS = $(BOOSTFLAGS_ENV)
+BOOSTLIBS = $(BOOSTLIBS_ENV)
 
 # File names
 SOURCES = $(wildcard *.cc)
