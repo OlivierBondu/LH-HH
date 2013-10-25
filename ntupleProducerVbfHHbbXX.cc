@@ -62,7 +62,7 @@ int main (int argc, char **argv) {
   ("help,h", "produce help message")
   ("inputfile,i", po::value<std::string>(&inputfile)->default_value("../GluGluToHHTo2B2G_M-125_8TeV_madgraph_v2_DEL_v03.root"), "input file")
   ("outputfile,o", po::value<std::string>(&outputfile)->default_value("output.root"), "output file")
-  ("outputtree,ot", po::value<std::string>(&outputtree)->default_value("GluGluToHHTo2B2G_8TeV"), "output tree")
+  ("outputtree,t", po::value<std::string>(&outputtree)->default_value("GluGluToHHTo2B2G_8TeV"), "output tree")
   ;
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -115,14 +115,35 @@ int main (int argc, char **argv) {
  float hww_etap; //---- ambiguity on the sign
  float hww_etam;
  
+ float gen_hww_mt;
+ float gen_hww_pt;
+ float gen_hww_phi;
+ float gen_hww_eta;
+ float gen_hbb_pt;
+ float gen_hbb_phi;
+ float gen_hbb_eta;
+ 
  float pt1;
  float pt2;
  float nlep;
  float channel;
  float mll;
+ float ptll;
+ float pzll;
  float dphill;
- 
  float pfmet;
+ 
+ float gen_pt1;
+ float gen_pt2;
+ float gen_nlep;
+ float gen_channel;
+ float gen_mll;
+ float gen_dphill;
+ float gen_ptll;
+ float gen_pzll;
+ float gen_pfmet;
+ float gen_pfmez;
+ float gen_mvv;
  
  //---- x>hh_m (ww)
  float xhh_ww_mt;
@@ -135,6 +156,7 @@ int main (int argc, char **argv) {
  float xhh_p_ww_eta;
  float xhh_p_ww_phi;
  float xhh_p_ww_m;
+ 
  
  
  outtree->Branch("jetpt1",  &jetpt1,  "jetpt1/F");
@@ -160,13 +182,33 @@ int main (int argc, char **argv) {
  outtree->Branch("hww_etam", &hww_etam, "hww_etam/F");
  outtree->Branch("hww_phi", &hww_phi, "hww_phi/F");
  
+ outtree->Branch("gen_hww_mt", &gen_hww_mt, "gen_hww_mt/F");
+ outtree->Branch("gen_hww_pt", &gen_hww_pt, "gen_hww_pt/F");
+ outtree->Branch("gen_hww_phi", &gen_hww_phi, "gen_hww_phi/F");
+ outtree->Branch("gen_hww_eta", &gen_hww_eta, "gen_hww_eta/F");
+ outtree->Branch("gen_hbb_pt", &gen_hbb_pt, "gen_hbb_pt/F");
+ outtree->Branch("gen_hbb_phi", &gen_hbb_phi, "gen_hbb_phi/F");
+ outtree->Branch("gen_hbb_eta", &gen_hbb_eta, "gen_hbb_eta/F");
+ 
  outtree->Branch("pfmet", &pfmet, "pfmet/F");
  outtree->Branch("pt1", &pt1, "pt1/F");
  outtree->Branch("pt2", &pt2, "pt2/F");
- outtree->Branch("nlep", &nlep, "nlep/F");
- outtree->Branch("channel", &channel, "channel/F");
+ outtree->Branch("ptll", &ptll, "ptll/F");
+ outtree->Branch("pzll", &pzll, "pzll/F");
  outtree->Branch("mll", &mll, "mll/F");
  outtree->Branch("dphill", &dphill, "dphill/F");
+ outtree->Branch("gen_pfmet", &gen_pfmet, "gen_pfmet/F");
+ outtree->Branch("gen_pfmez", &gen_pfmez, "gen_pfmez/F");
+ outtree->Branch("gen_mvv", &gen_mvv, "gen_mvv/F");
+ outtree->Branch("gen_pt1", &gen_pt1, "gen_pt1/F");
+ outtree->Branch("gen_pt2", &gen_pt2, "gen_pt2/F");
+ outtree->Branch("gen_ptll", &gen_ptll, "gen_ptll/F");
+ outtree->Branch("gen_pzll", &gen_pzll, "gen_pzll/F");
+ outtree->Branch("gen_mll", &gen_mll, "gen_mll/F");
+ outtree->Branch("gen_dphill", &gen_dphill, "gen_dphill/F");
+ 
+ outtree->Branch("nlep", &nlep, "nlep/F");
+ outtree->Branch("channel", &channel, "channel/F");
  
  outtree->Branch("xhh_ww_mt",  &xhh_ww_mt,  "xhh_ww_mt/F");
  
@@ -269,16 +311,30 @@ int main (int argc, char **argv) {
   }
   
   TLorentzVector l1, l2;
-  it_type_m_lepton = m_maxptleptons.begin();
+  TLorentzVector gen_l1, gen_l2;
+  
+  it_type_m_lepton = m_maxptleptons.begin(); 
   
   if (nlep >= 1) {
-   if (it_type_m_lepton->second>0) { l1 = ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->P4();}
-   else                            { l1 = ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->P4();}
+   if (it_type_m_lepton->second>0) { 
+    l1     =                 ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->P4();
+    gen_l1 = ((GenParticle*) ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->Particle.GetObject())->P4();
+   }
+   else                            {
+    l1     =                 ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->P4();
+    gen_l1 = ((GenParticle*) ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->Particle.GetObject())->P4();
+   }
    
    if (nlep >= 2) {
     it_type_m_lepton++;
-    if (it_type_m_lepton->second>0) { l2 = ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->P4();}
-    else                            { l2 = ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->P4();}
+    if (it_type_m_lepton->second>0) { 
+     l2     =                 ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->P4();
+     gen_l2 = ((GenParticle*) ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->Particle.GetObject())->P4();
+    }
+    else                            { 
+     l2     =                 ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->P4();
+     gen_l2 = ((GenParticle*) ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->Particle.GetObject())->P4();
+    }
    }
   }
   
@@ -446,7 +502,70 @@ int main (int argc, char **argv) {
    pt1 = l1.Pt();
    pt2 = l2.Pt();
    mll = (l1+l2).M();
+   ptll = (l1+l2).Pt();
+   pzll = (l1+l2).Pz();
    dphill = l1.DeltaPhi(l2);
+   
+   gen_pt1 = gen_l1.Pt();
+   gen_pt2 = gen_l2.Pt();
+   gen_mll = (gen_l1+gen_l2).M();
+   gen_ptll = (gen_l1+gen_l2).Pt();
+   gen_pzll = (gen_l1+gen_l2).Pz();
+   gen_dphill = gen_l1.DeltaPhi(gen_l2);
+   
+   TLorentzVector gen_met_vector;
+   int nH = 0;
+   for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
+    GenParticle* particle = (GenParticle*) branchParticle->At(iPart);
+    //---- neutrinos
+    int pdgCode = TMath::Abs(particle->PID);
+    int IsPU = particle->IsPU;
+    int status = particle->Status;
+    
+    if (IsPU == 0 && status == 3 && (pdgCode == 12 || pdgCode == 14 || pdgCode == 16) ) {
+     gen_met_vector = gen_met_vector + particle->P4();
+     //     if (particle->M1 != -1) std::cout << " particle->M1 = " << particle->M1 << std::endl;
+     //     if (particle->M2 != -1) std::cout << " particle->M2 = " << particle->M2 << std::endl;
+     //     if (particle->D1 != -1) std::cout << " particle->D1 = " << particle->D1 << std::endl;
+     //     if (particle->D2 != -1) std::cout << " particle->D2 = " << particle->D2 << std::endl;
+     
+     //    h ->  W W -> lvlv
+     //     if (particle->M1 != -1) {
+     //      GenParticle* possibleW = (GenParticle*) (branchParticle->At(particle->M1));    
+     //      if (possibleW  && TMath::Abs(possibleW->PID) == 24 ) {
+     //       GenParticle* possibleH = (GenParticle*) (branchParticle->At(possibleW->M1));
+     //       if (possibleH && possibleH->PID == 25  ) {
+     //        gen_met_vector = gen_met_vector + particle->P4();
+     //       }
+     //      }
+     //     }
+     
+    }
+    
+    
+    if (IsPU == 0  &&  pdgCode == 35) { //--- 35 = "modified Higgs" (the "25" one is the one decaying into 2b")
+     gen_hww_pt  = particle->P4().Pt(); 
+     gen_hww_phi = particle->P4().Phi(); 
+     gen_hww_eta = particle->P4().Eta(); 
+     nH++;
+    }
+    
+    if (IsPU == 0  &&  pdgCode == 25) { //--- the "25" higgs is the one decaying into 2b"
+     gen_hbb_pt  = particle->P4().Pt(); 
+     gen_hbb_phi = particle->P4().Phi(); 
+     gen_hbb_eta = particle->P4().Eta(); 
+     nH++;
+    }
+    
+    
+   }
+   
+   //   std::cout << " nH = " << nH << std::endl;
+   
+   gen_pfmet = gen_met_vector.Pt();
+   gen_pfmez = gen_met_vector.Pz();
+   gen_mvv = gen_met_vector.M();
+   
    
    
    TLorentzVector hww;
@@ -474,7 +593,7 @@ int main (int argc, char **argv) {
     if (sintheta2 > 0) sintheta = sqrt (sintheta2);
     if (sintheta2 > 0) {
      hww_etap = - log (tan ( asin ( sintheta ) / 2. )) ;
-     hww_etam = - log (tan ( asin (-sintheta ) / 2. )) ;
+     hww_etam = + log (tan ( asin ( sintheta ) / 2. )) ;
      
      hwwp = hww;
      //     std::cout << " hww_pt = " << hww_pt << std::endl;
