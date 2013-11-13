@@ -27,3 +27,14 @@ LH-HH
 </ul>
 
 
+
+Delphes simulation:
+
+    rm data/delphes_output_ggHHnew.root
+    ./DelphesHepMC examples/delphes_card_CMS.tcl data/delphes_output_ggHHnew.root data/test-MR410_out.lhe.hepmc
+
+Ntuple producer:
+
+    cd LH-HH-Analysis
+    source setup.sh 
+    ./ntupleProducerVbfHHbbXX.exe -i ../data/delphes_output_ggHHnew.root
