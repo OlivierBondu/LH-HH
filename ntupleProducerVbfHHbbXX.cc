@@ -53,6 +53,9 @@ int main (int argc, char **argv) {
  std::string inputfile;
  std::string outputfile;
  std::string outputtree;
+ bool doHwwselection;
+ bool doHggselection;
+ bool doHbbselection;
  // print out passed arguments
  std::copy(argv, argv + argc, std::ostream_iterator<char*>(std::cout, " "));
  // argument parsing
@@ -63,6 +66,9 @@ int main (int argc, char **argv) {
   ("inputfile,i", po::value<std::string>(&inputfile)->default_value("../GluGluToHHTo2B2G_M-125_8TeV_madgraph_v2_DEL_v03.root"), "input file")
   ("outputfile,o", po::value<std::string>(&outputfile)->default_value("output.root"), "output file")
   ("outputtree,t", po::value<std::string>(&outputtree)->default_value("GluGluToHHTo2B2G_8TeV"), "output tree")
+  ("doHwwselection", po::value<bool>(&doHwwselection)->default_value(false), "apply Hww selection")  
+  ("doHggselection", po::value<bool>(&doHggselection)->default_value(false), "apply Hgg selection")  
+  ("doHbbselection", po::value<bool>(&doHbbselection)->default_value(false), "apply Hbb selection")  
   ;
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -79,7 +85,11 @@ int main (int argc, char **argv) {
  }
  // end of argument parsing
  //################################################
- 
+
+ // check if at least one selection is turned on
+ if( (!doHwwselection) && (!doHggselection) && (!doHbbselection) ) {std::cerr << std::endl << "ERROR: Exactly one Higgs selection must be turned on, exiting" << std::endl; return 1;} 
+ // check if at most one selection is turned on
+ if( ((doHwwselection) && (doHggselection)) || ((doHggselection) && (doHbbselection)) || ((doHwwselection) && (doHbbselection)) ) {std::cerr << std::endl << "ERROR: Exactly one Higgs selection must be turned on, exiting" << std::endl; return 1;}
  
  
  float HiggsMass = 125.;
@@ -107,6 +117,14 @@ int main (int argc, char **argv) {
  float hbb_pt;
  float hbb_eta;
  float hbb_phi;
+ float hbb_e;
+ float hbb_mass;
+
+ float gen_hbb_pt;
+ float gen_hbb_phi;
+ float gen_hbb_eta;
+ float gen_hbb_e;
+ float gen_hbb_mass;
  
  //---- h>WW
  float hww_mt;
@@ -119,9 +137,6 @@ int main (int argc, char **argv) {
  float gen_hww_pt;
  float gen_hww_phi;
  float gen_hww_eta;
- float gen_hbb_pt;
- float gen_hbb_phi;
- float gen_hbb_eta;
  
  float pt1;
  float pt2;
@@ -145,6 +160,38 @@ int main (int argc, char **argv) {
  float gen_pfmez;
  float gen_mvv;
  
+ //---- h>aa
+ float hgg_pt;
+ float hgg_eta;
+ float hgg_phi;
+ float hgg_e;
+ float hgg_mass;
+
+ float hgg_g1_pt;
+ float hgg_g1_eta;
+ float hgg_g1_phi;
+ float hgg_g1_e;
+ float hgg_g2_pt;
+ float hgg_g2_eta;
+ float hgg_g2_phi;
+ float hgg_g2_e;
+
+ float gen_hgg_pt;
+ float gen_hgg_eta;
+ float gen_hgg_phi;
+ float gen_hgg_e;
+ float gen_hgg_mass;
+
+ float gen_hgg_g1_pt;
+ float gen_hgg_g1_eta;
+ float gen_hgg_g1_phi;
+ float gen_hgg_g1_e;
+ float gen_hgg_g2_pt;
+ float gen_hgg_g2_eta;
+ float gen_hgg_g2_phi;
+ float gen_hgg_g2_e;
+
+
  //---- x>hh_m (ww)
  float xhh_ww_mt;
  
@@ -175,7 +222,15 @@ int main (int argc, char **argv) {
  outtree->Branch("hbb_pt", &hbb_pt, "hbb_pt/F");
  outtree->Branch("hbb_eta", &hbb_eta, "hbb_eta/F");
  outtree->Branch("hbb_phi", &hbb_phi, "hbb_phi/F");
+ outtree->Branch("hbb_e", &hbb_e, "hbb_e/F");
+ outtree->Branch("hbb_mass", &hbb_mass, "hbb_mass/F");
  
+ outtree->Branch("gen_hbb_pt", &gen_hbb_pt, "gen_hbb_pt/F");
+ outtree->Branch("gen_hbb_phi", &gen_hbb_phi, "gen_hbb_phi/F");
+ outtree->Branch("gen_hbb_eta", &gen_hbb_eta, "gen_hbb_eta/F");
+ outtree->Branch("gen_hbb_e", &gen_hbb_e, "gen_hbb_e/F");
+ outtree->Branch("gen_hbb_mass", &gen_hbb_mass, "gen_hbb_mass/F");
+
  outtree->Branch("hww_mt", &hww_mt, "hww_mt/F");
  outtree->Branch("hww_pt", &hww_pt, "hww_pt/F");
  outtree->Branch("hww_etap", &hww_etap, "hww_etap/F");
@@ -186,9 +241,6 @@ int main (int argc, char **argv) {
  outtree->Branch("gen_hww_pt", &gen_hww_pt, "gen_hww_pt/F");
  outtree->Branch("gen_hww_phi", &gen_hww_phi, "gen_hww_phi/F");
  outtree->Branch("gen_hww_eta", &gen_hww_eta, "gen_hww_eta/F");
- outtree->Branch("gen_hbb_pt", &gen_hbb_pt, "gen_hbb_pt/F");
- outtree->Branch("gen_hbb_phi", &gen_hbb_phi, "gen_hbb_phi/F");
- outtree->Branch("gen_hbb_eta", &gen_hbb_eta, "gen_hbb_eta/F");
  
  outtree->Branch("pfmet", &pfmet, "pfmet/F");
  outtree->Branch("pt1", &pt1, "pt1/F");
@@ -210,6 +262,36 @@ int main (int argc, char **argv) {
  outtree->Branch("nlep", &nlep, "nlep/F");
  outtree->Branch("channel", &channel, "channel/F");
  
+ outtree->Branch("hgg_pt", &hgg_pt, "hgg_pt/F");
+ outtree->Branch("hgg_eta", &hgg_eta, "hgg_eta/F");
+ outtree->Branch("hgg_phi", &hgg_phi, "hgg_phi/F");
+ outtree->Branch("hgg_e", &hgg_e, "hgg_e/F");
+ outtree->Branch("hgg_mass", &hgg_mass, "hgg_mass/F");
+
+ outtree->Branch("hgg_g1_pt", &hgg_g1_pt, "hgg_g1_pt/F");
+ outtree->Branch("hgg_g1_eta", &hgg_g1_eta, "hgg_g1_eta/F");
+ outtree->Branch("hgg_g1_phi", &hgg_g1_phi, "hgg_g1_phi/F");
+ outtree->Branch("hgg_g1_e", &hgg_g1_e, "hgg_g1_e/F");
+ outtree->Branch("hgg_g2_pt", &hgg_g2_pt, "hgg_g2_pt/F");
+ outtree->Branch("hgg_g2_eta", &hgg_g2_eta, "hgg_g2_eta/F");
+ outtree->Branch("hgg_g2_phi", &hgg_g2_phi, "hgg_g2_phi/F");
+ outtree->Branch("hgg_g2_e", &hgg_g2_e, "hgg_g2_e/F");
+
+ outtree->Branch("gen_hgg_pt", &gen_hgg_pt, "gen_hgg_pt/F");
+ outtree->Branch("gen_hgg_eta", &gen_hgg_eta, "gen_hgg_eta/F");
+ outtree->Branch("gen_hgg_phi", &gen_hgg_phi, "gen_hgg_phi/F");
+ outtree->Branch("gen_hgg_e", &gen_hgg_e, "gen_hgg_e/F");
+ outtree->Branch("gen_hgg_mass", &gen_hgg_mass, "gen_hgg_mass/F");
+
+ outtree->Branch("gen_hgg_g1_pt", &gen_hgg_g1_pt, "gen_hgg_g1_pt/F");
+ outtree->Branch("gen_hgg_g1_eta", &gen_hgg_g1_eta, "gen_hgg_g1_eta/F");
+ outtree->Branch("gen_hgg_g1_phi", &gen_hgg_g1_phi, "gen_hgg_g1_phi/F");
+ outtree->Branch("gen_hgg_g1_e", &gen_hgg_g1_e, "gen_hgg_g1_e/F");
+ outtree->Branch("gen_hgg_g2_pt", &gen_hgg_g2_pt, "gen_hgg_g2_pt/F");
+ outtree->Branch("gen_hgg_g2_eta", &gen_hgg_g2_eta, "gen_hgg_g2_eta/F");
+ outtree->Branch("gen_hgg_g2_phi", &gen_hgg_g2_phi, "gen_hgg_g2_phi/F");
+ outtree->Branch("gen_hgg_g2_e", &gen_hgg_g2_e, "gen_hgg_g2_e/F");
+
  outtree->Branch("xhh_ww_mt",  &xhh_ww_mt,  "xhh_ww_mt/F");
  
  outtree->Branch("xhh_p_ww_pt",  &xhh_p_ww_pt,  "xhh_p_ww_pt/F");
