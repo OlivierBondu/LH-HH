@@ -21,6 +21,9 @@ SOURCES = $(wildcard *.cc)
 OBJECTS = $(SOURCES:.cc=.o)
 EXEC = $(SOURCES:.cc=.exe)
 
+# all
+all: $(EXEC)
+
 # Main target
 # $(EXEC): $(OBJECTS) ExRootTreeReader.o
 # $(CC) $(OBJECTS) $(ROOTGLIBS) -L`pwd` -lDelphes ExRootTreeReader.o -o $(EXEC)
