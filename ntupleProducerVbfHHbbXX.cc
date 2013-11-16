@@ -377,6 +377,7 @@ int main (int argc, char **argv) {
   }
   
   //---- at least 2 leptons ----
+  //   if (m_maxptleptons.size() != 0) std::cout << "m_maxptleptons.size() = " << m_maxptleptons.size() << std::endl;
   if (m_maxptleptons.size() < 2) continue;
   
   // kind = 0/1 if m/e
