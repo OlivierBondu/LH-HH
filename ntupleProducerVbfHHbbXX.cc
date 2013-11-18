@@ -66,7 +66,7 @@ int main (int argc, char **argv) {
   ("inputfile,i", po::value<std::string>(&inputfile)->default_value("../GluGluToHHTo2B2G_M-125_8TeV_madgraph_v2_DEL_v03.root"), "input file")
   ("outputfile,o", po::value<std::string>(&outputfile)->default_value("output.root"), "output file")
   ("outputtree,t", po::value<std::string>(&outputtree)->default_value("GluGluToHHTo2B2G_8TeV"), "output tree")
-  ("doHwwselection", po::value<bool>(&doHwwselection)->default_value(false), "apply Hww selection")  
+  ("doHwwselection", po::value<bool>(&doHwwselection)->default_value(true),  "apply Hww selection")  
   ("doHggselection", po::value<bool>(&doHggselection)->default_value(false), "apply Hgg selection")  
   ("doHbbselection", po::value<bool>(&doHbbselection)->default_value(false), "apply Hbb selection")  
   ;
@@ -377,7 +377,7 @@ int main (int argc, char **argv) {
   }
   
   //---- at least 2 leptons ----
-  //   if (m_maxptleptons.size() != 0) std::cout << "m_maxptleptons.size() = " << m_maxptleptons.size() << std::endl;
+  if (m_maxptleptons.size() != 0) std::cout << "m_maxptleptons.size() = " << m_maxptleptons.size() << std::endl;
   if (m_maxptleptons.size() < 2) continue;
   
   // kind = 0/1 if m/e

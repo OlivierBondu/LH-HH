@@ -35,9 +35,15 @@ Delphes simulation:
 
     rm data/delphes_output_ggHHnew.root
     ./DelphesHepMC examples/delphes_card_CMS.tcl data/delphes_output_ggHHnew.root data/test-MR410_out.lhe.hepmc
+    ./DelphesHepMC examples/delphes_card_CMS.tcl data/delphes_output_ttbar.root data/test-ttbar.lhe.hepmc
+    ./DelphesHepMC examples/delphes_card_CMS.tcl data/delphes_output_vbfHHWWbb.root data/test-MR410_out.lhe.hepmc
+    
 
 Ntuple producer:
 
     cd LH-HH-Analysis
     source setup.sh 
+    make ntupleProducerVbfHHbbXX.exe
     ./ntupleProducerVbfHHbbXX.exe -i ../data/delphes_output_ggHHnew.root
+    ./ntupleProducerVbfHHbbXX.exe -i ../data/delphes_output_ttbar.root
+    ./ntupleProducerVbfHHbbXX.exe -i ../data/delphes_output_vbfHHWWbb.root
