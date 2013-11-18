@@ -100,6 +100,14 @@ int main (int argc, char **argv) {
  TFile *outfile = new TFile(outputfile.c_str(), "RECREATE");
  TTree *outtree = new TTree(outputtree.c_str(), "reduced");
  
+ //---- analysis channel ----
+ float  KindSelection = -1;  //---- 0 = WWbb,  1=ggbb,   2=bbbb
+ if (doHwwselection) KindSelection = 0;
+ if (doHggselection) KindSelection = 1;
+ if (doHbbselection) KindSelection = 2;
+ 
+ 
+ 
  float jetpt1;
  float jetpt2;
  float bjetpt1;
@@ -205,6 +213,8 @@ int main (int argc, char **argv) {
  float xhh_p_ww_m;
  
  
+ 
+ outtree->Branch("KindSelection",  &KindSelection,  "KindSelection/F");
  
  outtree->Branch("jetpt1",  &jetpt1,  "jetpt1/F");
  outtree->Branch("jetpt2",  &jetpt2,  "jetpt2/F");
@@ -377,50 +387,51 @@ int main (int argc, char **argv) {
   }
   
   //---- at least 2 leptons ----
-  if (m_maxptleptons.size() != 0) std::cout << "m_maxptleptons.size() = " << m_maxptleptons.size() << std::endl;
-  if (m_maxptleptons.size() < 2) continue;
-  
-  // kind = 0/1 if m/e
-  
-  std::map<float, int>::iterator it_type_m_lepton = m_maxptleptons.begin();
-  int flav1 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
-  
-  it_type_m_lepton++;
-  int flav2 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
-  
-  nlep = 0;
-  for(it_type_m_lepton = m_maxptleptons.begin(); it_type_m_lepton != m_maxptleptons.end(); it_type_m_lepton++) {
-   if ( -(it_type_m_lepton->first) > 10) nlep++;
-  }
-  
+//   if (m_maxptleptons.size() != 0) std::cout << "m_maxptleptons.size() = " << m_maxptleptons.size() << std::endl;
   TLorentzVector l1, l2;
   TLorentzVector gen_l1, gen_l2;
-  
-  it_type_m_lepton = m_maxptleptons.begin(); 
-  
-  if (nlep >= 1) {
-   if (it_type_m_lepton->second>0) { 
-    l1     =                 ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->P4();
-    gen_l1 = ((GenParticle*) ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->Particle.GetObject())->P4();
-   }
-   else                            {
-    l1     =                 ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->P4();
-    gen_l1 = ((GenParticle*) ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->Particle.GetObject())->P4();
-   }
+
+  if (doHwwselection) {
+   if (m_maxptleptons.size() < 2) continue;
    
-   if (nlep >= 2) {
-    it_type_m_lepton++;
+   // kind = 0/1 if m/e
+   
+   std::map<float, int>::iterator it_type_m_lepton = m_maxptleptons.begin();
+   int flav1 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
+   
+   it_type_m_lepton++;
+   int flav2 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
+   
+   nlep = 0;
+   for(it_type_m_lepton = m_maxptleptons.begin(); it_type_m_lepton != m_maxptleptons.end(); it_type_m_lepton++) {
+    if ( -(it_type_m_lepton->first) > 10) nlep++;
+   }
+  
+   it_type_m_lepton = m_maxptleptons.begin(); 
+   
+   if (nlep >= 1) {
     if (it_type_m_lepton->second>0) { 
-     l2     =                 ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->P4();
-     gen_l2 = ((GenParticle*) ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->Particle.GetObject())->P4();
+     l1     =                 ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->P4();
+     gen_l1 = ((GenParticle*) ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->Particle.GetObject())->P4();
     }
-    else                            { 
-     l2     =                 ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->P4();
-     gen_l2 = ((GenParticle*) ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->Particle.GetObject())->P4();
+    else                            {
+     l1     =                 ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->P4();
+     gen_l1 = ((GenParticle*) ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->Particle.GetObject())->P4();
+    }
+    
+    if (nlep >= 2) {
+     it_type_m_lepton++;
+     if (it_type_m_lepton->second>0) { 
+      l2     =                 ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->P4();
+      gen_l2 = ((GenParticle*) ((Muon*)         branchMuon->At(  it_type_m_lepton->second - 1 ))->Particle.GetObject())->P4();
+     }
+     else                            { 
+      l2     =                 ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->P4();
+      gen_l2 = ((GenParticle*) ((Electron*) branchElectron->At(-(it_type_m_lepton->second + 1)))->Particle.GetObject())->P4();
+     }
     }
    }
-  }
-  
+  }  
   
   /**
    * Loop over all jets in event:
@@ -436,7 +447,7 @@ int main (int argc, char **argv) {
   for(i = 0; i < branchJet->GetEntriesFast(); i++) {
    jet = (Jet*) branchJet->At(i);
    TLorentzVector jetP4 = jet->P4();
-   if (jet->PT > MINPTJET && !isThisJetALepton(&jetP4, &l1, &l2)) countJets++;
+   if (jet->PT > MINPTJET && (doHwwselection && !isThisJetALepton(&jetP4, &l1, &l2))) countJets++;
   }
   
   if (countJets < 4) {
@@ -450,7 +461,7 @@ int main (int argc, char **argv) {
    jet = (Jet*) branchJet->At(i);
    TLorentzVector jetP4 = jet->P4();
    
-   if (jet->PT > MINPTJET && !isThisJetALepton(&jetP4, &l1, &l2)) {
+   if (jet->PT > MINPTJET && (doHwwselection && !isThisJetALepton(&jetP4, &l1, &l2))) {
     if      (ijet == 0) {jet1 = jetP4; ijet++; }
     else if (ijet == 1) {jet2 = jetP4; ijet++; }
     else if (ijet == 2) {jet3 = jetP4; ijet++; }
@@ -555,16 +566,16 @@ int main (int argc, char **argv) {
   xhh_p_ww_phi = -99;
   xhh_p_ww_m   = -99;    
   
+  //-------------------
+  //---- hh > WWbb ----
   //---- at least 2 leptons ----
-  
-  if (m_maxptleptons.size() >= 2) {
+  if (doHwwselection && m_maxptleptons.size() >= 2) {
    
    // kind = 0/1 if m/e
    
    std::map<float, int>::iterator it_type_m_lepton = m_maxptleptons.begin();
    int flav1 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
    pt1 = - it_type_m_lepton->first;
-   
    it_type_m_lepton++;
    int flav2 = (it_type_m_lepton->second<0);  // m>0, e<0 ---> m=0, e=1
    pt2 = - it_type_m_lepton->first;
@@ -738,6 +749,17 @@ int main (int argc, char **argv) {
   }
   
   
+  //-------------------
+  //---- hh > ggbb ----
+  //---- at least 2 photons ----
+  
+  // ... coming soon
+  
+  //-------------------
+  //---- hh > bbbb ----
+  //---- at least +2 jets ----
+  
+  // ... coming soon 
   
   
   
