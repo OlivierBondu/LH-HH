@@ -110,6 +110,8 @@
  float xhh_p_ww_phi;
  float xhh_p_ww_m;
  
+  float Njets;
+  
  GenParticle *particle;
  Electron *electron;
  Photon *photon;
