@@ -33,7 +33,7 @@
 // basic parameters
 #include "baseline.h"
 // analysis cuts
-#include "cuts.dat"
+#include "cuts.h"
 // Verbosity
 #define DEBUG 0
 #include <boost/program_options.hpp>
