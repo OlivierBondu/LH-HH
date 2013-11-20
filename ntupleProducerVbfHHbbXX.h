@@ -109,9 +109,15 @@
  float xhh_p_ww_eta;
  float xhh_p_ww_phi;
  float xhh_p_ww_m;
+
+ float Njets;
+ float Ntags;
  
-  float Njets;
-  
+ float gen_vbf_m; 
+ float gen_vbf_pt; 
+ float gen_vbf_phi; 
+ float gen_vbf_eta;
+ 
  GenParticle *particle;
  Electron *electron;
  Photon *photon;
