@@ -68,6 +68,8 @@ bool findjets(TClonesArray *branchJet,ExRootTreeReader* treeReader,
 bool istagged(Jet *jet);
 bool isThisJetALepton(TLorentzVector* jet, TLorentzVector* l1, TLorentzVector* l2);
 /////////////////////////////////////////////////////
+bool fill_gen_var(TClonesArray *branchParticle);
+/////////////////////////////////////////////////////
 bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry);
 bool jets_semi_hadronic(int countJets, int counttags, std::vector<int> tagentry);
 bool analyse_2b2w(bool findlepton);
@@ -145,7 +147,7 @@ int main (int argc, char **argv) {
   TClonesArray *branchMuon = treeReader->UseBranch("Muon");
   TClonesArray *branchMissingET = treeReader->UseBranch("MissingET");
   TClonesArray *branchPhoton = treeReader->UseBranch("Photon");
-
+  TClonesArray *branchParticle = treeReader->UseBranch("Particle");
  //---- events
  Long64_t allEntries = treeReader->GetEntries();
  std::cout << "** Chain contains " << allEntries << " events" << std::endl;
@@ -154,6 +156,8 @@ int main (int argc, char **argv) {
  for(entry = 0; entry < 15; entry++) {
   // Load selected branches with data from specified event
   treeReader->ReadEntry(entry);
+  // fill gen variables for the two higgses -- no cut at all
+  bool gen = fill_gen_var(branchParticle);
   // analysis itself -- it alredy fill the variables
   // jets
   //if(!doHbbselection) {
@@ -193,6 +197,60 @@ int fourb(){
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool fill_gen_var(TClonesArray *branchParticle){
+
+TLorentzVector gen_met_vector;
+int nH = 0;
+for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
+    GenParticle* particle = (GenParticle*) branchParticle->At(iPart);
+    int pdgCode = TMath::Abs(particle->PID);
+    int IsPU = particle->IsPU;
+    int status = particle->Status;
+    //
+    if (IsPU == 0  &&  pdgCode == 35) { //--- 35 = "modified Higgs" (the "25" one is the one decaying into 2b")
+     gen_hww_pt  = particle->P4().Pt(); 
+     gen_hww_phi = particle->P4().Phi(); 
+     gen_hww_eta = particle->P4().Eta(); 
+     nH++;
+     }
+    if (IsPU == 0  &&  pdgCode == 25) { //--- the "25" higgs is the one decaying into 2b"
+     gen_hbb_pt  = particle->P4().Pt(); 
+     gen_hbb_phi = particle->P4().Phi(); 
+     gen_hbb_eta = particle->P4().Eta(); 
+     nH++;
+     }     
+     //
+    if (IsPU == 0 && status == 3 && (pdgCode == 12 || pdgCode == 14 || pdgCode == 16) ) {
+     gen_met_vector = gen_met_vector + particle->P4();
+          if (particle->M1 != -1) std::cout << " particle->M1 = " << particle->M1 << std::endl;
+          if (particle->M2 != -1) std::cout << " particle->M2 = " << particle->M2 << std::endl;
+          if (particle->D1 != -1) std::cout << " particle->D1 = " << particle->D1 << std::endl;
+          if (particle->D2 != -1) std::cout << " particle->D2 = " << particle->D2 << std::endl;
+     
+         //h ->  W W -> lvlv
+          if (particle->M1 != -1) {
+           GenParticle* possibleW = (GenParticle*) (branchParticle->At(particle->M1));    
+           if (possibleW  && TMath::Abs(possibleW->PID) == 24 ) {
+            GenParticle* possibleH = (GenParticle*) (branchParticle->At(possibleW->M1));
+            if (possibleH && possibleH->PID == 25  ) {
+             gen_met_vector = gen_met_vector + particle->P4();
+            }
+           }
+          }
+     
+    }
+
+
+    }
+
+   gen_pfmet = gen_met_vector.Pt();
+   gen_pfmez = gen_met_vector.Pz();
+   gen_mvv = gen_met_vector.M();
+
+return false;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry){ // to Alexandra
   // invariant mass of pairs among the first 6 jets
   float mjj12 = (Jets[0]+Jets[1]).M();
@@ -208,7 +266,7 @@ return false;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool jets_semi_hadronic(int countJets, int counttags, std::vector<int> tagentry){ // to us
   // 
-/*  float mjj12 = (Jets[0]+Jets[1]).M();
+  float mjj12 = (Jets[0]+Jets[1]).M();
   float mjj13 = (Jets[0]+Jets[2]).M();
   float mjj14 = (Jets[0]+Jets[3]).M();
   float mjj23 = (Jets[1]+Jets[2]).M();
@@ -224,26 +282,25 @@ bool jets_semi_hadronic(int countJets, int counttags, std::vector<int> tagentry)
   m_maxmjj[-mjj34] = 6;
   //
   // write here the resolved case -- things are already TLorentzVectors 
-  std::vector<PseudoJet> bJets, vbfJets; 
+  std::vector< TLorentzVector > tosort; 
   std::map<float, int>::iterator it_type_m_maxmjj = m_maxmjj.begin();
   if (it_type_m_maxmjj->second == 1) { 
-		vbfJets.push_back(Jets[0]); vbfJets.push_back(Jets[1]); 
-		bJet1 = jet3; bJet2 = jet4; }; // and so on
-*/
-/*  if (it_type_m_maxmjj->second == 2) { Jet1 = jet1; Jet2 = jet3; bJet1 = jet2; bJet2 = jet4; };
-  if (it_type_m_maxmjj->second == 3) { Jet1 = jet1; Jet2 = jet4; bJet1 = jet2; bJet2 = jet3; };
-  if (it_type_m_maxmjj->second == 4) { Jet1 = jet2; Jet2 = jet3; bJet1 = jet1; bJet2 = jet4; };
-  if (it_type_m_maxmjj->second == 5) { Jet1 = jet2; Jet2 = jet4; bJet1 = jet1; bJet2 = jet3; };
-  if (it_type_m_maxmjj->second == 6) { Jet1 = jet3; Jet2 = jet4; bJet1 = jet1; bJet2 = jet2; };
-*/  
-  /*
+		for(int j=0;j<countJets;j++) tosort.push_back(Jets[j]);  }; // and so on 
+  // select the VBF jets
+  TLorentzVector Jet1,Jet2,bJet1,bJet2;
+  if (it_type_m_maxmjj->second == 2) { Jet1 = tosort[0]; Jet2 = tosort[2]; bJet1 = tosort[1]; bJet2 = tosort[3]; };
+  if (it_type_m_maxmjj->second == 3) { Jet1 = tosort[0]; Jet2 = tosort[3]; bJet1 = tosort[1]; bJet2 = tosort[2]; };
+  if (it_type_m_maxmjj->second == 4) { Jet1 = tosort[1]; Jet2 = tosort[2]; bJet1 = tosort[0]; bJet2 = tosort[3]; };
+  if (it_type_m_maxmjj->second == 5) { Jet1 = tosort[1]; Jet2 = tosort[3]; bJet1 = tosort[0]; bJet2 = tosort[2]; };
+  if (it_type_m_maxmjj->second == 6) { Jet1 = tosort[2]; Jet2 = tosort[3]; bJet1 = tosort[0]; bJet2 = tosort[1]; };
+  
+  
   //---- sub-order in pt: jetpt1 > jetpt2
   if (Jet1.Pt() < Jet2.Pt()) {
    TLorentzVector tempjet = Jet1;
    Jet1 = Jet2;
    Jet2 = tempjet;
   }
-  
   //---- sub-order in pt: bjetpt1 > bjetpt2
   if (bJet1.Pt() < bJet2.Pt()) {
    TLorentzVector tempjet = bJet1;
@@ -263,9 +320,8 @@ bool jets_semi_hadronic(int countJets, int counttags, std::vector<int> tagentry)
   jeteta2 = Jet2.Eta();
   bjeteta1 = bJet1.Eta();
   bjeteta2 = bJet2.Eta();
-  */
   
-  /*
+  // save the higgs
   TLorentzVector hbb;
   hbb = bJet1 + bJet2;
   
@@ -276,7 +332,8 @@ bool jets_semi_hadronic(int countJets, int counttags, std::vector<int> tagentry)
   hbb_pt = (bJet1 +  bJet2 ).Pt();
   hbb_eta = (bJet1 +  bJet2 ).Eta();
   hbb_phi = (bJet1 +  bJet2 ).Phi();
-  */  
+  
+
 
 return false;
 } // close semi hadronic
@@ -284,7 +341,7 @@ return false;
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool analyse_2b2w(bool findlepton){ // to Andrea
   //-------------
-/*
+
   //-----------------
   //---- leptons ----
   hww_mt = -99;
@@ -304,60 +361,7 @@ bool analyse_2b2w(bool findlepton){ // to Andrea
   //---- hh > WWbb ----
   //---- at least 2 leptons ----
    
-   TLorentzVector gen_met_vector;
-   int nH = 0;
-   for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
-    GenParticle* particle = (GenParticle*) branchParticle->At(iPart);
-    //---- neutrinos
-    int pdgCode = TMath::Abs(particle->PID);
-    int IsPU = particle->IsPU;
-    int status = particle->Status;
-    
-    if (IsPU == 0 && status == 3 && (pdgCode == 12 || pdgCode == 14 || pdgCode == 16) ) {
-     gen_met_vector = gen_met_vector + particle->P4();
-     //     if (particle->M1 != -1) std::cout << " particle->M1 = " << particle->M1 << std::endl;
-     //     if (particle->M2 != -1) std::cout << " particle->M2 = " << particle->M2 << std::endl;
-     //     if (particle->D1 != -1) std::cout << " particle->D1 = " << particle->D1 << std::endl;
-     //     if (particle->D2 != -1) std::cout << " particle->D2 = " << particle->D2 << std::endl;
-     
-     //    h ->  W W -> lvlv
-     //     if (particle->M1 != -1) {
-     //      GenParticle* possibleW = (GenParticle*) (branchParticle->At(particle->M1));    
-     //      if (possibleW  && TMath::Abs(possibleW->PID) == 24 ) {
-     //       GenParticle* possibleH = (GenParticle*) (branchParticle->At(possibleW->M1));
-     //       if (possibleH && possibleH->PID == 25  ) {
-     //        gen_met_vector = gen_met_vector + particle->P4();
-     //       }
-     //      }
-     //     }
-     
-    }
-    
-    
-    if (IsPU == 0  &&  pdgCode == 35) { //--- 35 = "modified Higgs" (the "25" one is the one decaying into 2b")
-     gen_hww_pt  = particle->P4().Pt(); 
-     gen_hww_phi = particle->P4().Phi(); 
-     gen_hww_eta = particle->P4().Eta(); 
-     nH++;
-    }
-    
-    if (IsPU == 0  &&  pdgCode == 25) { //--- the "25" higgs is the one decaying into 2b"
-     gen_hbb_pt  = particle->P4().Pt(); 
-     gen_hbb_phi = particle->P4().Phi(); 
-     gen_hbb_eta = particle->P4().Eta(); 
-     nH++;
-    }
-    
-    
-   }
-   
    //   std::cout << " nH = " << nH << std::endl;
-   
-   gen_pfmet = gen_met_vector.Pt();
-   gen_pfmez = gen_met_vector.Pz();
-   gen_mvv = gen_met_vector.M();
-   
-   
    
    TLorentzVector hww;
    TLorentzVector hwwp;
@@ -391,7 +395,7 @@ bool analyse_2b2w(bool findlepton){ // to Andrea
      hwwp.SetPtEtaPhiM(hww_pt, hww_etap, hww_phi, HiggsMass);
      hwwm.SetPtEtaPhiM(hww_pt, hww_etam, hww_phi, HiggsMass);
      
-     //---- x>hh
+/*     //---- x>hh
      TLorentzVector xhh;
      xhh = hww + hbb;
      
@@ -409,10 +413,11 @@ bool analyse_2b2w(bool findlepton){ // to Andrea
      xhh_p_ww_eta = xhh_p.Eta();
      xhh_p_ww_phi = xhh_p.Phi();
      xhh_p_ww_m   = xhh_p.M();
-     
-     
+
      //--- transverse mass
      xhh_ww_mt = sqrt((l1.Pt() + l2.Pt() + vmet.Pt() + bJet1.Pt() + bJet2.Pt())*(l1.Pt() + l2.Pt() + vmet.Pt() + bJet1.Pt() + bJet2.Pt()) - xhh.Pt()*xhh.Pt());
+
+  */   
      
     }
     else {
@@ -429,7 +434,7 @@ bool analyse_2b2w(bool findlepton){ // to Andrea
     hww_phi = -99;
    }
    
-  */
+  
 
 return false;
 } // close wwbb analysis
@@ -566,18 +571,6 @@ bool findleptons( TClonesArray *branchMissingET, TClonesArray *branchElectron,TC
 bool findjets(TClonesArray *branchJet,ExRootTreeReader* treeReader, 
 		bool doHbbselection, int & countJets, int & counttags, std::vector<int> & tagentry){ 
 
-   // filling test --- to erase
-   pt1 = -99.;
-   pt2 = -99.;
-   nlep = 10.;
-   channel = -1.;
-   mll = -99.;
-   dphill = -99.;
-   
-   hww_pt = -99.;
-   hww_etam = -99.;
-   hww_etap = -99.;
-   hww_phi = -99.;
    /////////////
   Jet *jet; // P4 returns a TLorentzVector
   //---- at least 4 jets with pt>MINPTJET GeV 
@@ -605,6 +598,7 @@ bool findjets(TClonesArray *branchJet,ExRootTreeReader* treeReader,
   //if (Jets[0].Pt() < MINPTJET) std::cout << "We have a problem; countJets = " << countJets 
    //				<< "; ijet = " << ijet << " and jet4.Pt() = " << jet4.Pt() << std::endl; 
   std::cout<<"number of jets "<<countJets<<std::endl;
+  Njets = countJets;
   //if ((!doHbbselection && countJets > 2) || (doHbbselection && countJets > 3)){
   // shrink to account substructure   
   return false;
@@ -644,7 +638,7 @@ bool istagged(Jet *jet){
 		{ momentum += ((Photon*) object)->P4(); }
 	//particles.push_back(jet->Constituents.At(j));
       particles.push_back(momentum);
-      std::cout<<"the hardest core! "<<momentum.Px()<<std::endl;
+      //std::cout<<"the hardest core! "<<momentum.Pt()<<std::endl;
       } // close for jet constituents
   //fastjet::PseudoJet teste = particles[0];
   //std::cout<<"the hardest core! "<<teste<<std::endl;
@@ -773,6 +767,6 @@ bool isThisJetALepton(TLorentzVector* jet, TLorentzVector* l1, TLorentzVector* l
  outtree->Branch("xhh_m_ww_phi", &xhh_m_ww_phi, "xhh_m_ww_phi/F");
  outtree->Branch("xhh_m_ww_m",   &xhh_m_ww_m,   "xhh_m_ww_m/F");
 
+ outtree->Branch("Njets",   &Njets,   "Njets/F");
   return 0;
 }
-
