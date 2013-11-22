@@ -169,14 +169,16 @@ int main (int argc, char **argv) {
   bool findlepton = findleptons(branchMissingET,branchElectron,branchMuon,treeReader, doHwwselection,l1,l2); 
   int findphoton = findphotons(branchPhoton,treeReader, doHggselection); 
   // select the VBF jets 
-  std::vector<int> bJets;  //vector to keep the entries of Jets that are VBF tagged
-  bool isVBF = findVBFcuts(bJets,Jets);
+  std::vector<int> vbfJets;  //vector to keep the entries of Jets that are VBF tagged
+  bool isVBF = findVBFcuts(vbfJets,Jets);
 //  bool isVBF = findVBFgen(bJets);
   // EW objects first
   // analyse
   TLorentzVector hbb; 
-  if(isVBF && !doHbbselection){bool semi = jets_semi_hadronic(countJets, counttags,tagentry,Jets,bJets);}
-  if(isVBF && doHbbselection) {bool fourb = analyse_4b(countJets, counttags,tagentry,Jets,bJets);}
+  bool fourB = false;
+  bool semi = false;
+  if(isVBF && !doHbbselection){semi = jets_semi_hadronic(countJets, counttags,tagentry,Jets,vbfJets);}
+  if(isVBF && doHbbselection) {fourB = analyse_4b(countJets, counttags,tagentry,Jets,vbfJets);}
   if(isVBF && doHwwselection) { // save 2 leptons, and MET
         //bool bbww = analyse_2b2w(findlepton,hbb); 
         std::cout<<"leptons"<<std::endl;
@@ -187,7 +189,7 @@ int main (int argc, char **argv) {
   } // gg sel
   // jets
   if(isVBF) 
-    if ( (doHbbselection && fourb) 
+    if ( (doHbbselection && fourB) 
 	|| (doHwwselection && findlepton) //  && analyse_2b2w ???
 	|| (doHggselection && findphoton) ) outtree->Fill();
  //
@@ -315,16 +317,27 @@ return false;
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry, 
-	std::vector<TLorentzVector> Jets, std::vector<int> bJets ){ // to Alexandra
-  // invariant mass of pairs among the first 6 jets
-  float mjj12 = (Jets[0]+Jets[1]).M();
-  float mjj13 = (Jets[0]+Jets[2]).M();
-  float mjj14 = (Jets[0]+Jets[3]).M();
-  float mjj23 = (Jets[1]+Jets[2]).M();
-  float mjj24 = (Jets[1]+Jets[3]).M();
-  float mjj34 = (Jets[2]+Jets[3]).M();
+	std::vector<TLorentzVector> Jets, std::vector<int> vbfJets ){
+  // search for tags, if the tags are not among the VBF tagged
+  int realtag=0; 
+  if(counttags >1) {
+    for(int i; i<counttags;i++) 
+	{if(tagentry[i] != vbfJets[0] && tagentry[i] != vbfJets[1]) realtag++;
+	 else std::cout<<"a tagged jets was VBF "<<std::endl;}
 
-return false;
+  } 
+  // now we separate analysis
+  if(realtag==0) {
+    std::cout<<"resolved! "<<std::endl;
+    // pair the jets
+  return false; 
+  } else if(realtag==1) { // close if resolved
+    std::cout<<"1 tag! "<<std::endl;
+  return false; 
+  } else if(realtag>1) { // close if 1 tag
+  std::cout<<"2 tag! "<<std::endl;
+  return false; 
+  } else return false; // close if 2 tags
 } // close 4b analysis
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
