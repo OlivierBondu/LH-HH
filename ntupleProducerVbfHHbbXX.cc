@@ -4,7 +4,7 @@
     Olivier Boundu
     Alexandra Carvalho                                                        **/
 /*******************************************************************************/
-/*  to run
+/* to run
  make ntupleProducerVbfHHbbXX.exe
  ./ntupleProducerVbfHHbbXX.exe -t test -i GluGluToHHTo2B2G_M-125_8TeV_madgraph_v2_DEL_v03.root -o testout.root
 ******************************************************************************/
@@ -20,6 +20,7 @@
 #include <TChain.h>
 #include <TClonesArray.h>
 #include <TObject.h>
+#include <TMath.h>
 #include <vector>
 // Delphes headers
 #include "ExRootAnalysis/ExRootTreeReader.h"
@@ -61,27 +62,31 @@ struct myclassMax {
 int fourb();
 int dobranches(TTree* outtree);
 bool findleptons(TClonesArray *branchMissingET ,TClonesArray *branchElectron, TClonesArray *branchMuon,
-		ExRootTreeReader* treeReader, bool doHwwselection); 
+		ExRootTreeReader* treeReader, 
+		bool doHwwselection, TLorentzVector & l1, TLorentzVector & l2); 
 int findphotons(TClonesArray *branchPhoton,ExRootTreeReader* treeReader, bool doHwwselection);
 bool findjets(TClonesArray *branchJet,ExRootTreeReader* treeReader, 
-		bool doHbbselection, int & countJets, int & counttags, std::vector<int> & tagentry);
+		bool doHbbselection, int & countJets, int & counttags, std::vector<int> & tagentry,
+		std::vector<TLorentzVector> & Jets);
 bool istagged(Jet *jet);
 bool isThisJetALepton(TLorentzVector* jet, TLorentzVector* l1, TLorentzVector* l2);
+bool findVBFcuts(std::vector<int> & bJets,std::vector<TLorentzVector> Jets);
+bool findVBFgen(std::vector<int> & bJets,std::vector<TLorentzVector> Jets);
 /////////////////////////////////////////////////////
 bool fill_gen_var(TClonesArray *branchParticle);
 /////////////////////////////////////////////////////
-bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry);
-bool jets_semi_hadronic(int countJets, int counttags, std::vector<int> tagentry);
-bool analyse_2b2w(bool findlepton, TLorentzVector hbb);
+bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry, 
+		std::vector<TLorentzVector> Jets, std::vector<int> bJets);
+bool jets_semi_hadronic(int countJets, int counttags, 
+		std::vector<int> tagentrym, std::vector<TLorentzVector> Jets, std::vector<int> bJets );
+bool analyse_2b2w(bool findlepton, TLorentzVector hbb, TLorentzVector & l1, TLorentzVector & l2);
 bool VBFcuts(TLorentzVector* jet1,TLorentzVector* jet2);
 //bool aabb analyse_2b2a();
 ////////////////////////////////////////////////////
 
-namespace po = boost::program_options;
+  TLorentzVector pho1, pho2; // save to compare to jets
 
-TLorentzVector pho1, pho2; // save to compare to jets
-TLorentzVector l1, l2; // save to compare to jets
-std::vector<TLorentzVector> Jets;// jet1, jet2, jet3, jet4, jet5, jet6; // all the jets
+namespace po = boost::program_options;
 
 int main (int argc, char **argv) {
  int r = fourb();
@@ -102,9 +107,9 @@ int main (int argc, char **argv) {
   ("inputfile,i", po::value<std::string>(&inputfile)->default_value("../GluGluToHHTo2B2G_M-125_8TeV_madgraph_v2_DEL_v03.root"), "input file")
   ("outputfile,o", po::value<std::string>(&outputfile)->default_value("output.root"), "output file")
   ("outputtree,t", po::value<std::string>(&outputtree)->default_value("GluGluToHHTo2B2G_8TeV"), "output tree")
-  ("doHwwselection", po::value<bool>(&doHwwselection)->default_value(true),  "apply Hww selection")  
+  ("doHwwselection", po::value<bool>(&doHwwselection)->default_value(false),  "apply Hww selection")  
   ("doHggselection", po::value<bool>(&doHggselection)->default_value(false), "apply Hgg selection")  
-  ("doHbbselection", po::value<bool>(&doHbbselection)->default_value(false), "apply Hbb selection")  
+  ("doHbbselection", po::value<bool>(&doHbbselection)->default_value(true), "apply Hbb selection")  
   ;
   po::variables_map vm;
   po::store(po::parse_command_line(argc, argv, desc), vm);
@@ -133,56 +138,59 @@ int main (int argc, char **argv) {
  ExRootTreeReader *treeReader = new ExRootTreeReader(chain);
  TFile *outfile = new TFile(outputfile.c_str(), "RECREATE");
  TTree *outtree = new TTree(outputtree.c_str(), "reduced");
- 
  int dobranch = dobranches(outtree);
-
  //---- objects in Delphes format 
-// TClonesArray *branchParticle = treeReader->UseBranch("Particle");
-// TClonesArray *branchEFlowTrack = treeReader->UseBranch("EFlowTrack");
-// TClonesArray *branchEFlowTower = treeReader->UseBranch("EFlowTower");
-// TClonesArray *branchEFlowMuon = treeReader->UseBranch("EFlowMuon");
- 
-  TClonesArray *branchJet = treeReader->UseBranch("Jet");
-  TClonesArray *branchElectron = treeReader->UseBranch("Electron");
-  TClonesArray *branchMuon = treeReader->UseBranch("Muon");
-  TClonesArray *branchMissingET = treeReader->UseBranch("MissingET");
-  TClonesArray *branchPhoton = treeReader->UseBranch("Photon");
-  TClonesArray *branchParticle = treeReader->UseBranch("Particle");
+ // TClonesArray *branchParticle = treeReader->UseBranch("Particle");
+ // TClonesArray *branchEFlowTrack = treeReader->UseBranch("EFlowTrack");
+ // TClonesArray *branchEFlowTower = treeReader->UseBranch("EFlowTower");
+ // TClonesArray *branchEFlowMuon = treeReader->UseBranch("EFlowMuon");
+ TClonesArray *branchJet = treeReader->UseBranch("Jet");
+ TClonesArray *branchElectron = treeReader->UseBranch("Electron");
+ TClonesArray *branchMuon = treeReader->UseBranch("Muon");
+ TClonesArray *branchMissingET = treeReader->UseBranch("MissingET");
+ TClonesArray *branchPhoton = treeReader->UseBranch("Photon");
+ TClonesArray *branchParticle = treeReader->UseBranch("Particle");
  //---- events
  Long64_t allEntries = treeReader->GetEntries();
  std::cout << "** Chain contains " << allEntries << " events" << std::endl;
-
  // Loop over all events
- for(entry = 0; entry < allEntries; entry++) {
+ for(entry = 0; entry < 10; entry++) {
   // Load selected branches with data from specified event
   treeReader->ReadEntry(entry);
   // fill gen variables for the two higgses -- no cut at all
   bool gen = fill_gen_var(branchParticle);
   // analysis itself -- it alredy fill the variables
-  // jets
-  //if(!doHbbselection) {
+  //TLorentzVector pho1, pho2; // save to compare to jets
+  TLorentzVector l1, l2; // save to compare to jets
+  std::vector<TLorentzVector> Jets; // all the jets
   // find, tag, return all jets
   int countJets = 0, counttags=0; std::vector<int> tagentry;
-  bool findjet = findjets(branchJet, treeReader, doHbbselection,countJets, counttags,tagentry); 
-  bool findlepton = findleptons(branchMissingET,branchElectron,branchMuon,treeReader, doHwwselection); 
+  bool findjet = findjets(branchJet, treeReader, doHbbselection,countJets, counttags,tagentry,Jets); 
+  bool findlepton = findleptons(branchMissingET,branchElectron,branchMuon,treeReader, doHwwselection,l1,l2); 
+  int findphoton = findphotons(branchPhoton,treeReader, doHggselection); 
+  // select the VBF jets 
+  std::vector<int> bJets;  //vector to keep the entries of Jets that are VBF tagged
+  bool isVBF = findVBFcuts(bJets,Jets);
+//  bool isVBF = findVBFgen(bJets);
   // EW objects first
   // analyse
   TLorentzVector hbb; 
-  if(!doHbbselection) {bool semi = jets_semi_hadronic(countJets, counttags,tagentry);}
-  if(doHbbselection) {bool fourb = analyse_4b(countJets, counttags,tagentry);}
-  if(doHwwselection) { // save 2 leptons, and MET
+  if(isVBF && !doHbbselection){bool semi = jets_semi_hadronic(countJets, counttags,tagentry,Jets,bJets);}
+  if(isVBF && doHbbselection) {bool fourb = analyse_4b(countJets, counttags,tagentry,Jets,bJets);}
+  if(isVBF && doHwwselection) { // save 2 leptons, and MET
         //bool bbww = analyse_2b2w(findlepton,hbb); 
         std::cout<<"leptons"<<std::endl;
   } // ww sel
   if(doHggselection) { // save 2 photons
-			//bool aabb = analyse_2b2a();  
-	int findphoton = findphotons(branchPhoton,treeReader, doHggselection); 
+	//bool aabb = analyse_2b2a();  
         std::cout<<"photons"<<std::endl;
   } // gg sel
   // jets
-  //std::cout<<"jets"<<std::endl;
-  //  
-  outtree->Fill();
+  if(isVBF) 
+    if ( (doHbbselection && fourb) 
+	|| (doHwwselection && findlepton) //  && analyse_2b2w ???
+	|| (doHggselection && findphoton) ) outtree->Fill();
+ //
  } // close loop entry
  outfile->cd();
  outtree->Write();
@@ -195,6 +203,51 @@ int fourb(){
   std::cout<<"hi!!!!"<<std::endl;
   //int r = 0;
   return 0;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool findVBFcuts(std::vector<int> & bJets, std::vector<TLorentzVector> Jets){
+  /********************************************************************************
+    we select the VBF jets from the pair that have higher invariant mass
+    then as first try apply the standard VBF cuts as Andrea proposes
+
+    Delta eta > 3.5
+    invariant mass > 500 GeV 
+  ********************************************************************************/
+  // we first select the maximum invariant mass pair
+  std::vector<double> a1; const int nmax=Jets.size();
+  std::vector< int > jetn1, jetn2; // to keep the pairs
+  for(int nj1=0; nj1< nmax; nj1++) 
+	for(int nj2=nj1+1; nj2< nmax; nj2++) { // we also what to keep the nj...
+	  int invmass =  (Jets[nj1]+Jets[nj2]).M();
+	  a1.push_back(invmass); jetn1.push_back(nj1);jetn2.push_back(nj2);
+  } // loop on jets
+  int i1;
+  // Find the minumum value of the vector (iterator version)
+  i1 = TMath::LocMax(a1.size(), &a1[0]);
+  // save the pair number
+  bJets.push_back(jetn1[i1]);bJets.push_back(jetn2[i1]);
+  // apply the VBF cuts
+  double etaVBF = (Jets[bJets[0]]-Jets[bJets[1]]).Eta();
+  if(a1[i1] > 500 && etaVBF > - 3.5 && etaVBF < 3.5){
+    //std::cout<<"hi VBF jets really are !!!! "<<bJets[0]<<" "<<bJets[1]<<std::endl;
+    return true;
+  } else return false;
+}
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool findVBFgen(std::vector<int> & bJets, std::vector<TLorentzVector> Jets){
+  std::cout<<"hi VBF!!!!"<<std::endl;
+  /*
+    we select the VBF jets by light flavours
+
+    Delta eta > 3.5
+    invariant mass > 500 GeV 
+  */
+
+
+  //int r = 0;
+  return false;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -261,7 +314,8 @@ return false;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry){ // to Alexandra
+bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry, 
+	std::vector<TLorentzVector> Jets, std::vector<int> bJets ){ // to Alexandra
   // invariant mass of pairs among the first 6 jets
   float mjj12 = (Jets[0]+Jets[1]).M();
   float mjj13 = (Jets[0]+Jets[2]).M();
@@ -274,10 +328,9 @@ return false;
 } // close 4b analysis
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool jets_semi_hadronic(int countJets, int counttags, std::vector<int> tagentry){ // to us
+bool jets_semi_hadronic(int countJets, int counttags, std::vector<int> tagentry
+		,std::vector<TLorentzVector> Jets, std::vector<int> bJets ){ // to us
   //
-
-
 
 if(countJets>3)  {
   // 
@@ -357,7 +410,7 @@ return false;
 } // close semi hadronic
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool analyse_2b2w(bool findlepton, TLorentzVector hbb){ // to Andrea
+bool analyse_2b2w(bool findlepton, TLorentzVector hbb, TLorentzVector & l1, TLorentzVector & l2){ // to Andrea
   //-------------
 
   //-----------------
@@ -461,7 +514,7 @@ return false;
 //} // close aabb analysis
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool findleptons( TClonesArray *branchMissingET, TClonesArray *branchElectron,TClonesArray *branchMuon,ExRootTreeReader* treeReader, bool doHwwselection){
+bool findleptons( TClonesArray *branchMissingET, TClonesArray *branchElectron,TClonesArray *branchMuon,ExRootTreeReader* treeReader, bool doHwwselection , TLorentzVector & l1, TLorentzVector & l2){
 
   TLorentzVector gen_l1, gen_l2;
   ///---- take the two highest pt leptons in the event (m or e)
@@ -585,7 +638,8 @@ bool findleptons( TClonesArray *branchMissingET, TClonesArray *branchElectron,TC
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool findjets(TClonesArray *branchJet,ExRootTreeReader* treeReader, 
-		bool doHbbselection, int & countJets, int & counttags, std::vector<int> & tagentry){ 
+		bool doHbbselection, int & countJets, int & counttags, std::vector<int> & tagentry,
+		std::vector<TLorentzVector> & Jets){ 
 
    /////////////
   Jet *jet; // P4 returns a TLorentzVector
