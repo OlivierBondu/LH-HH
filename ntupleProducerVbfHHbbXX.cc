@@ -154,7 +154,7 @@ int main (int argc, char **argv) {
  Long64_t allEntries = treeReader->GetEntries();
  std::cout << "** Chain contains " << allEntries << " events" << std::endl;
  // Loop over all events
- for(entry = 0; entry < 10; entry++) {
+ for(entry = 0; entry < allEntries; entry++) {
   // Load selected branches with data from specified event
   treeReader->ReadEntry(entry);
   // fill gen variables for the two higgses -- no cut at all
@@ -208,7 +208,7 @@ int fourb(){
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool findVBFcuts(std::vector<int> & bJets, std::vector<TLorentzVector> Jets){
+bool findVBFcuts(std::vector<int> & vbfJets, std::vector<TLorentzVector> Jets){
   /********************************************************************************
     we select the VBF jets from the pair that have higher invariant mass
     then as first try apply the standard VBF cuts as Andrea proposes
@@ -221,18 +221,18 @@ bool findVBFcuts(std::vector<int> & bJets, std::vector<TLorentzVector> Jets){
   std::vector< int > jetn1, jetn2; // to keep the pairs
   for(int nj1=0; nj1< nmax; nj1++) 
 	for(int nj2=nj1+1; nj2< nmax; nj2++) { // we also what to keep the nj...
-	  int invmass =  (Jets[nj1]+Jets[nj2]).M();
+	  double invmass =  (Jets[nj1]+Jets[nj2]).M();
 	  a1.push_back(invmass); jetn1.push_back(nj1);jetn2.push_back(nj2);
   } // loop on jets
   int i1;
   // Find the minumum value of the vector (iterator version)
   i1 = TMath::LocMax(a1.size(), &a1[0]);
   // save the pair number
-  bJets.push_back(jetn1[i1]);bJets.push_back(jetn2[i1]);
+  vbfJets.push_back(jetn1[i1]);vbfJets.push_back(jetn2[i1]);
   // apply the VBF cuts
-  double etaVBF = (Jets[bJets[0]]-Jets[bJets[1]]).Eta();
+  double etaVBF = (Jets[vbfJets[0]]-Jets[vbfJets[1]]).Eta();
   if(a1[i1] > 500 && etaVBF > - 3.5 && etaVBF < 3.5){
-    //std::cout<<"hi VBF jets really are !!!! "<<bJets[0]<<" "<<bJets[1]<<std::endl;
+    std::cout<<"hi VBF jets really are !!!! "<<vbfJets[0]<<" "<<vbfJets[1]<<std::endl;
     return true;
   } else return false;
 }
@@ -246,11 +246,84 @@ bool findVBFgen(std::vector<int> & bJets, std::vector<TLorentzVector> Jets){
     Delta eta > 3.5
     invariant mass > 500 GeV 
   */
-
+  // find the ligth flavours
+   
 
   //int r = 0;
   return false;
 }
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry, 
+	std::vector<TLorentzVector> Jets, std::vector<int> vbfJets ){
+ // search for tags, if the tags are not among the VBF tagged, save the bjets
+ int realtag=0; 
+ if(counttags >1) {
+    for(int i; i<counttags;i++) 
+        if(tagentry[i] != vbfJets[0] && tagentry[i] != vbfJets[1]) {
+	  realtag++;
+	}
+	else std::cout<<"a tagged jets was VBF "<<std::endl;
+   std::cout<<"real tags "<<realtag<<std::endl;
+ } 
+ //std::vector<int> bJets; // keep the non vbf jets
+
+ // now we separate analysis
+ if(realtag==0 && countJets>5) {
+   // pair the jets by the minimum invariant mass difference
+   std::vector<double> a1; //const int nmax=BJets.size();
+   std::cout<<"resolved! "<<std::endl;
+   std::vector< int > jetn1, jetn2,jetn3, jetn4; // to keep the pairs
+   for(int nj1=0; nj1< countJets; nj1++)  if(nj1 != vbfJets[0] && nj1 != vbfJets[1]) 
+     for(int nj2=nj1+1; nj2< countJets; nj2++) if(nj2 != vbfJets[0] && nj2 != vbfJets[1]) 
+       for(int nj3=nj2+1; nj3< countJets; nj3++)  if(nj3 != vbfJets[0] && nj3 != vbfJets[1])   
+	 for(int nj4=nj3+1; nj4< countJets; nj4++)  if(nj4 != vbfJets[0] && nj4 != vbfJets[1]) { 
+	   //std::cout<<nj1<<nj2<<" "<<nj3<<nj4<<std::endl;
+	   double invmassA =  (Jets[nj1]+Jets[nj2]).M();
+	   double invmassB =  (Jets[nj3]+Jets[nj4]).M();
+	   a1.push_back((invmassA-invmassB)*(invmassA-invmassB)); 
+	   jetn1.push_back(nj1);jetn2.push_back(nj2); // we also what to keep the nj...
+	   jetn3.push_back(nj3);jetn4.push_back(nj4);
+           
+    } // loop on jets
+    int minM;
+    //Find the minumum value of the vector (iterator version)
+    minM = TMath::LocMin(a1.size(), &a1[0]);
+    std::cout<<"hi, the jets pairs are !!!! "<<jetn1[minM]<<jetn2[minM]<<" "
+	<<jetn3[minM]<<jetn4[minM]<<std::endl;
+    // higgs cuts
+    TLorentzVector H1 = Jets[jetn1[minM]]+Jets[jetn2[minM]];
+    TLorentzVector H2 = Jets[jetn3[minM]]+Jets[jetn4[minM]];
+    double massDiff = abs(2*(H1.M() - H2.M())/(H1.M() + H2.M()));
+    double rapDiff = abs(H1.Eta() - H2.Eta());
+    float Hmin = HiggsMass*(1-tolerance);
+    float Hmax = HiggsMass*(1+tolerance);
+    if(massDiff < tolerance && //rapDiff < deltaEtaHH &&
+       (H1.M() > Hmin && H1.M() < Hmax) &&
+       (H2.M() > Hmin && H2.M() < Hmax)
+    ){
+     std::cout<<"getting there"<<std::endl; 
+     // fill Higgs variables
+     hbb_pt = H1.Pt();
+     hbb_eta = H1.Eta();
+     hbb_phi = H1.Phi();
+     hbb_mass = H1.M();
+     //
+     hww_pt = H2.Pt();
+     hww_phi = H2.Phi();
+     hww_etap = H2.Eta(); //---- ambiguity on the sign
+     hww_etam = H2.Eta();
+     // do variables to mtot
+     return true;
+    } else return false; // close higgs cuts
+  } else if(realtag==1 && countJets>2) { // close if resolved
+    std::cout<<"1 tag! "<<std::endl;
+  return false; 
+  } else if(realtag>1  && countJets>3) { // close if 1 tag
+  std::cout<<"2 tag! "<<std::endl;
+  return false; 
+  } else return false; // close if 2 tags
+} // close 4b analysis
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool fill_gen_var(TClonesArray *branchParticle){
@@ -316,31 +389,6 @@ return false;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry, 
-	std::vector<TLorentzVector> Jets, std::vector<int> vbfJets ){
-  // search for tags, if the tags are not among the VBF tagged
-  int realtag=0; 
-  if(counttags >1) {
-    for(int i; i<counttags;i++) 
-	{if(tagentry[i] != vbfJets[0] && tagentry[i] != vbfJets[1]) realtag++;
-	 else std::cout<<"a tagged jets was VBF "<<std::endl;}
-
-  } 
-  // now we separate analysis
-  if(realtag==0) {
-    std::cout<<"resolved! "<<std::endl;
-    // pair the jets
-  return false; 
-  } else if(realtag==1) { // close if resolved
-    std::cout<<"1 tag! "<<std::endl;
-  return false; 
-  } else if(realtag>1) { // close if 1 tag
-  std::cout<<"2 tag! "<<std::endl;
-  return false; 
-  } else return false; // close if 2 tags
-} // close 4b analysis
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool jets_semi_hadronic(int countJets, int counttags, std::vector<int> tagentry
 		,std::vector<TLorentzVector> Jets, std::vector<int> bJets ){ // to us
   //
@@ -369,12 +417,18 @@ if(countJets>3)  {
 
   // select the VBF jets
   TLorentzVector Jet1,Jet2,bJet1,bJet2;
-  if (it_type_m_maxmjj->second == 1) { Jet1 = tosort[0]; Jet2 = tosort[1]; bJet1 = tosort[2]; bJet2 = tosort[3]; };
-  if (it_type_m_maxmjj->second == 2) { Jet1 = tosort[0]; Jet2 = tosort[2]; bJet1 = tosort[1]; bJet2 = tosort[3]; };
-  if (it_type_m_maxmjj->second == 3) { Jet1 = tosort[0]; Jet2 = tosort[3]; bJet1 = tosort[1]; bJet2 = tosort[2]; };
-  if (it_type_m_maxmjj->second == 4) { Jet1 = tosort[1]; Jet2 = tosort[2]; bJet1 = tosort[0]; bJet2 = tosort[3]; };
-  if (it_type_m_maxmjj->second == 5) { Jet1 = tosort[1]; Jet2 = tosort[3]; bJet1 = tosort[0]; bJet2 = tosort[2]; };
-  if (it_type_m_maxmjj->second == 6) { Jet1 = tosort[2]; Jet2 = tosort[3]; bJet1 = tosort[0]; bJet2 = tosort[1]; };
+  if (it_type_m_maxmjj->second == 1) 
+	{ Jet1 = tosort[0]; Jet2 = tosort[1]; bJet1 = tosort[2]; bJet2 = tosort[3]; };
+  if (it_type_m_maxmjj->second == 2) 
+	{ Jet1 = tosort[0]; Jet2 = tosort[2]; bJet1 = tosort[1]; bJet2 = tosort[3]; };
+  if (it_type_m_maxmjj->second == 3) 
+	{ Jet1 = tosort[0]; Jet2 = tosort[3]; bJet1 = tosort[1]; bJet2 = tosort[2]; };
+  if (it_type_m_maxmjj->second == 4) 
+	{ Jet1 = tosort[1]; Jet2 = tosort[2]; bJet1 = tosort[0]; bJet2 = tosort[3]; };
+  if (it_type_m_maxmjj->second == 5) 
+	{ Jet1 = tosort[1]; Jet2 = tosort[3]; bJet1 = tosort[0]; bJet2 = tosort[2]; };
+  if (it_type_m_maxmjj->second == 6) 
+	{ Jet1 = tosort[2]; Jet2 = tosort[3]; bJet1 = tosort[0]; bJet2 = tosort[1]; };
 
   //std::cout<<"hi!!!! "<<Jet1.Pt()<<std::endl;  
   //---- sub-order in pt: jetpt1 > jetpt2
