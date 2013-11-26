@@ -376,7 +376,8 @@ bool findjets(TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower,
 		//TRefArray* test = jet->Particles;
 		JetsBtag.push_back(jet->BTag ); //else JetsFlavour.push_back(99);
 	}
-    double DR = Jets[0].DeltaR(Jets[1]);
+        double DR;
+    if(Jets.size()>1) DR =Jets[0].DeltaR(Jets[1]);
     std::cout<<"distance are !!!! "<<" "<<DR<<std::endl;
   // among all jets does it have sub?
   bool tagged = istagged(jet, branchEFlowTrack, branchEFlowTower, branchEFlowMuon);
