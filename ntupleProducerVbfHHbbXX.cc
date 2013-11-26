@@ -65,12 +65,14 @@ bool findleptons(TClonesArray *branchMissingET ,TClonesArray *branchElectron, TC
 		ExRootTreeReader* treeReader, 
 		bool doHwwselection, TLorentzVector & l1, TLorentzVector & l2); 
 int findphotons(TClonesArray *branchPhoton,ExRootTreeReader* treeReader, bool doHwwselection);
-bool findjets(TClonesArray *branchJet,ExRootTreeReader* treeReader, 
+bool findjets(TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower, 
+		TClonesArray *branchEFlowMuon ,
+		TClonesArray *branchJet,ExRootTreeReader* treeReader, 
 		bool doHbbselection, int & countJets, int & counttags, std::vector<int> & tagentry,
-		std::vector<TLorentzVector> & Jets);
-bool istagged(Jet *jet);
+		std::vector<TLorentzVector> & Jets, std::vector<int> & JetsBtag);
+bool istagged(Jet *jet,TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower, TClonesArray *branchEFlowMuon );
 bool isThisJetALepton(TLorentzVector* jet, TLorentzVector* l1, TLorentzVector* l2);
-bool findVBFcuts(std::vector<int> & bJets,std::vector<TLorentzVector> Jets);
+bool findVBFcuts(std::vector<int> & bJets,std::vector<TLorentzVector> Jets, std::vector<int> JetsBtag);
 bool findVBFgen(std::vector<int> & bJets,std::vector<TLorentzVector> Jets);
 /////////////////////////////////////////////////////
 bool fill_gen_var(TClonesArray *branchParticle);
@@ -140,19 +142,20 @@ int main (int argc, char **argv) {
  TTree *outtree = new TTree(outputtree.c_str(), "reduced");
  int dobranch = dobranches(outtree);
  //---- objects in Delphes format 
- // TClonesArray *branchParticle = treeReader->UseBranch("Particle");
- // TClonesArray *branchEFlowTrack = treeReader->UseBranch("EFlowTrack");
- // TClonesArray *branchEFlowTower = treeReader->UseBranch("EFlowTower");
- // TClonesArray *branchEFlowMuon = treeReader->UseBranch("EFlowMuon");
  TClonesArray *branchJet = treeReader->UseBranch("Jet");
  TClonesArray *branchElectron = treeReader->UseBranch("Electron");
  TClonesArray *branchMuon = treeReader->UseBranch("Muon");
  TClonesArray *branchMissingET = treeReader->UseBranch("MissingET");
  TClonesArray *branchPhoton = treeReader->UseBranch("Photon");
  TClonesArray *branchParticle = treeReader->UseBranch("Particle");
+ // to access constituents
+ TClonesArray *branchEFlowTrack = treeReader->UseBranch("EFlowTrack");
+ TClonesArray *branchEFlowTower = treeReader->UseBranch("EFlowTower");
+ TClonesArray *branchEFlowMuon = treeReader->UseBranch("EFlowMuon");
  //---- events
  Long64_t allEntries = treeReader->GetEntries();
  std::cout << "** Chain contains " << allEntries << " events" << std::endl;
+ //return 0;
  // Loop over all events
  for(entry = 0; entry < allEntries; entry++) {
   // Load selected branches with data from specified event
@@ -165,18 +168,20 @@ int main (int argc, char **argv) {
   std::vector<TLorentzVector> Jets; // all the jets
   // find, tag, return all jets
   int countJets = 0, counttags=0; std::vector<int> tagentry;
-  bool findjet = findjets(branchJet, treeReader, doHbbselection,countJets, counttags,tagentry,Jets); 
+  std::vector<int> JetsBtag;
+  bool findjet = findjets(branchEFlowTrack, branchEFlowTower, branchEFlowMuon, branchJet, treeReader, doHbbselection,countJets, counttags,tagentry,Jets,JetsBtag); 
   bool findlepton = findleptons(branchMissingET,branchElectron,branchMuon,treeReader, doHwwselection,l1,l2); 
   int findphoton = findphotons(branchPhoton,treeReader, doHggselection); 
   // select the VBF jets 
   std::vector<int> vbfJets;  //vector to keep the entries of Jets that are VBF tagged
-  bool isVBF = findVBFcuts(vbfJets,Jets);
+  bool isVBF = findVBFcuts(vbfJets,Jets,JetsBtag);
 //  bool isVBF = findVBFgen(bJets);
   // EW objects first
   // analyse
   TLorentzVector hbb; 
   bool fourB = false;
   bool semi = false;
+  std::cout<<"start analysis"<<std::endl; 
   if(isVBF && !doHbbselection){semi = jets_semi_hadronic(countJets, counttags,tagentry,Jets,vbfJets);}
   if(isVBF && doHbbselection) {fourB = analyse_4b(countJets, counttags,tagentry,Jets,vbfJets);}
   if(isVBF && doHwwselection) { // save 2 leptons, and MET
@@ -208,7 +213,7 @@ int fourb(){
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool findVBFcuts(std::vector<int> & vbfJets, std::vector<TLorentzVector> Jets){
+bool findVBFcuts(std::vector<int> & vbfJets, std::vector<TLorentzVector> Jets, std::vector<int> JetsBtag){
   /********************************************************************************
     we select the VBF jets from the pair that have higher invariant mass
     then as first try apply the standard VBF cuts as Andrea proposes
@@ -229,10 +234,20 @@ bool findVBFcuts(std::vector<int> & vbfJets, std::vector<TLorentzVector> Jets){
   i1 = TMath::LocMax(a1.size(), &a1[0]);
   // save the pair number
   vbfJets.push_back(jetn1[i1]);vbfJets.push_back(jetn2[i1]);
+  // it is VBF tagged
+  //  vbf_genB  vbf_btagged -- how much VBF tags are genb
   // apply the VBF cuts
-  double etaVBF = (Jets[vbfJets[0]]-Jets[vbfJets[1]]).Eta();
-  if(a1[i1] > 500 && etaVBF > - 3.5 && etaVBF < 3.5){
-    std::cout<<"hi VBF jets really are !!!! "<<vbfJets[0]<<" "<<vbfJets[1]<<std::endl;
+  double etaVBF = abs((Jets[vbfJets[0]]-Jets[vbfJets[1]]).Eta());
+  if( a1[i1] > HTVBF && etaVBF > DeltayVBF ){
+//    std::cout<<"hi VBF jets really are !!!! "<<vbfJets[0]<<" "<<vbfJets[1]<<std::endl;
+    vbf_btagged=JetsBtag[vbfJets[0]]+JetsBtag[vbfJets[1]];
+    vbf_pt1 = Jets[vbfJets[0]].Pt();
+    vbf_pt2 = Jets[vbfJets[1]].Pt();
+    vbf_m=a1[i1]; 
+    vbf_delta_eta = etaVBF; 
+    double DR = Jets[vbfJets[0]].DeltaR(JetsBtag[vbfJets[1]]);
+    std::cout<<"hi VBF jets really are !!!! "<<vbfJets[0]<<" "<<vbfJets[1]<<" "<<DR<<std::endl;
+    vbf_delta_R = DR;
     return true;
   } else return false;
 }
@@ -258,8 +273,8 @@ bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry,
 	std::vector<TLorentzVector> Jets, std::vector<int> vbfJets ){
  // search for tags, if the tags are not among the VBF tagged, save the bjets
  int realtag=0; 
- if(counttags >1) {
-    for(int i; i<counttags;i++) 
+ if(counttags >0) {
+    for(int i=0; i<counttags;i++) 
         if(tagentry[i] != vbfJets[0] && tagentry[i] != vbfJets[1]) {
 	  realtag++;
 	}
@@ -298,7 +313,8 @@ bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry,
     double rapDiff = abs(H1.Eta() - H2.Eta());
     float Hmin = HiggsMass*(1-tolerance);
     float Hmax = HiggsMass*(1+tolerance);
-    if(massDiff < tolerance && //rapDiff < deltaEtaHH &&
+    if( 
+       massDiff < tolerance && //rapDiff < deltaEtaHH &&
        (H1.M() > Hmin && H1.M() < Hmax) &&
        (H2.M() > Hmin && H2.M() < Hmax)
     ){
@@ -313,79 +329,145 @@ bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry,
      hww_phi = H2.Phi();
      hww_etap = H2.Eta(); //---- ambiguity on the sign
      hww_etam = H2.Eta();
+     hww_mt = H2.M(); /// mass in case of HbbHbb 
      // do variables to mtot
-     return true;
-    } else return false; // close higgs cuts
+    return true;
+    } else return true; // close higgs cuts
+  //
   } else if(realtag==1 && countJets>2) { // close if resolved
     std::cout<<"1 tag! "<<std::endl;
-  return false; 
+    return true; 
   } else if(realtag>1  && countJets>3) { // close if 1 tag
-  std::cout<<"2 tag! "<<std::endl;
-  return false; 
-  } else return false; // close if 2 tags
+    std::cout<<"2 tag! "<<std::endl;
+    return true; 
+  } else return true; // close if 2 tags
 } // close 4b analysis
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool fill_gen_var(TClonesArray *branchParticle){
+bool findjets(TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower, 
+		TClonesArray *branchEFlowMuon ,
+		TClonesArray *branchJet,ExRootTreeReader* treeReader, 
+		bool doHbbselection, int & countJets, int & counttags, std::vector<int> & tagentry,
+		std::vector<TLorentzVector> & Jets, std::vector<int> & JetsBtag){ 
+  /////////////
+  Jet *jet; // P4 returns a TLorentzVector
+  //---- at least 4 jets with pt>MINPTJET GeV 
+  // loop in all jets -- plots distances
+  for(i = 0; i < branchJet->GetEntriesFast(); i++) {
+   jet = (Jet*) branchJet->At(i);
+   double pts = jet->PT;
+   double etas = jet->Eta;
+   double phis=jet->Phi;
+   double masse=jet->Mass;
+   std::cout<<"quadrimomenta "<<" "<<pts<<" "<<etas<<" "<<phis<<" "<<masse<<" invariant mass "<< TMath::Sqrt(2*pts*pts*(TMath::CosH(etas)-TMath::Cos(phis)))<<std::endl;
+   TLorentzVector jetP4; //= jet->P4(); //SetPtEtaPhiM(pt,eta,phi,m)
+   jetP4.SetPtEtaPhiM(pts,etas,phis,masse);
+   // save jets if baseline cuts
+   // Sqrt(2*pt^2(Cosh(Eta)-Cos(Phi)))
+   if ( jet->PT > MINPTJET 
+	&& ((!doHbbselection ) ||  doHbbselection )){ // && !isThisJetALepton(&jetP4, &l1, &l2)
+		countJets++; 
+		//double Px=jetP4.Px(),Py=jetP4.Py(),Pz=jetP4.Pz(),E=jetP4.E();
+		Jets.push_back(jetP4);
+		//std::cout<<"jet px! "<<Px<<std::endl;
+		//int IsPU = jet->IsPU;
+		//return also a vector of PID
+		//if (IsPU==0) 
+		//TRefArray* test = jet->Particles;
+		JetsBtag.push_back(jet->BTag ); //else JetsFlavour.push_back(99);
+	}
+    double DR = Jets[0].DeltaR(JetsBtag[1]);
+    std::cout<<"distance are !!!! "<<" "<<DR<<std::endl;
+  // among all jets does it have sub?
+  bool tagged = istagged(jet, branchEFlowTrack, branchEFlowTower, branchEFlowMuon);
+  if(tagged) {counttags++, tagentry.push_back(i);}
+  // if is tagged keep it
+//    //cout << tagged_jet.m() << endl;
+//    //if  {
+//    tagged_jets.push_back(tagged_jet); // mass drop found
+//    tagged_jets_index.push_back(i); // identify the fat jet
+  } // close for each jet
+  //if (Jets[0].Pt() < MINPTJET) std::cout << "We have a problem; countJets = " << countJets 
+   //				<< "; ijet = " << ijet << " and jet4.Pt() = " << jet4.Pt() << std::endl; 
+  std::cout<<"number of jets "<<countJets<<std::endl;
+  std::cout<<"number tags "<<counttags<<std::endl;
+  Njets = countJets;
+  Ntags = counttags;
+  //if ((!doHbbselection && countJets > 2) || (doHbbselection && countJets > 3)){
+  // shrink to account substructure   
+  return false;
+} // end findjets
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+bool istagged(Jet *jet, TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower, TClonesArray *branchEFlowMuon ){
 
-TLorentzVector gen_met_vector;
-int nH = 0;
-for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
-    GenParticle* particle = (GenParticle*) branchParticle->At(iPart);
-    int pdgCode = TMath::Abs(particle->PID);
-    int IsPU = particle->IsPU;
-    int status = particle->Status;
-    //
-    if (IsPU == 0  &&  pdgCode == 35) { //--- 35 = "modified Higgs" (the "25" one is the one decaying into 2b")
-     gen_hww_pt  = particle->P4().Pt(); 
-     gen_hww_phi = particle->P4().Phi(); 
-     gen_hww_eta = particle->P4().Eta(); 
-     nH++;
-     }
-    if (IsPU == 0  &&  pdgCode == 25) { //--- the "25" higgs is the one decaying into 2b"
-     gen_hbb_pt  = particle->P4().Pt(); 
-     gen_hbb_phi = particle->P4().Phi(); 
-     gen_hbb_eta = particle->P4().Eta(); 
-     nH++;
-     }     
-     // vbf jets
-     if (IsPU == 0 && status == 3 && 
-	(pdgCode == 1 || pdgCode == 2 || pdgCode == 3 || pdgCode == 4 
-	|| pdgCode == -1 || pdgCode == -2 || pdgCode == -3 || pdgCode == -4) ) {
-     gen_vbf_pt  = particle->P4().Pt(); 
-     gen_vbf_phi = particle->P4().Phi(); 
-     gen_vbf_eta = particle->P4().Eta(); 
-     } 
-     //
-    if (IsPU == 0 && status == 3 && (pdgCode == 12 || pdgCode == 14 || pdgCode == 16) ) {
-     gen_met_vector = gen_met_vector + particle->P4();
-/*
-          if (particle->M1 != -1) std::cout << " particle->M1 = " << particle->M1 << std::endl;
-          if (particle->M2 != -1) std::cout << " particle->M2 = " << particle->M2 << std::endl;
-          if (particle->D1 != -1) std::cout << " particle->D1 = " << particle->D1 << std::endl;
-          if (particle->D2 != -1) std::cout << " particle->D2 = " << particle->D2 << std::endl;
-  */   
-         //h ->  W W -> lvlv
-          if (particle->M1 != -1) {
-           GenParticle* possibleW = (GenParticle*) (branchParticle->At(particle->M1));    
-           if (possibleW  && TMath::Abs(possibleW->PID) == 24 ) {
-            GenParticle* possibleH = (GenParticle*) (branchParticle->At(possibleW->M1));
-            if (possibleH && possibleH->PID == 25  ) {
-             gen_met_vector = gen_met_vector + particle->P4();
-            }
-           }
-          }
-     
-    }
-
-
-    }
-
-   gen_pfmet = gen_met_vector.Pt();
-   gen_pfmez = gen_met_vector.Pz();
-   gen_mvv = gen_met_vector.M();
-
-return false;
+  TObject *object;
+  TLorentzVector momentum;
+  //Jet *jet;
+  // check constituents
+  std::cout<<jet->Constituents.GetEntriesFast()<<std::endl;
+  int some =0;
+  vector<fastjet::PseudoJet> particles;
+      for(int j = 0; j < jet->Constituents.GetEntriesFast(); ++j){
+	//jet = jetentry;
+	momentum.SetPxPyPzE(0.0, 0.0, 0.0, 0.0);
+	//particles[j].SetPxPyPzE(0.0, 0.0, 0.0, 0.0);
+        object = jet->Constituents.At(j);
+//	TLorentzVector* blabla = (TLorentzVector*) ((GenParticle*) object)->P4();
+	//double px = blabla->Pt();//, py = blabla.Py(), pz = blabla.Pz(),pe = blabla.E();
+	//std::cout<<"Entered the loop "<<std::endl;
+	//particles.push_back(fastjet::PseudoJet());
+	//jetP4 = jet->Constituents.At(j)->P4();
+        // Check if the constituent are accessible
+        if(object == 0) {continue;} 
+        if(object->IsA() == GenParticle::Class()) 
+		{momentum += ((GenParticle*) object)->P4(); }
+        else if(object->IsA() == Track::Class())
+		{momentum += ((Track*) object)->P4(); } 
+        else if(object->IsA() == Tower::Class()) 
+		{momentum += ((Tower*) object)->P4(); }
+        else if(object->IsA() == Muon::Class()) 
+		{ momentum += ((Muon*) object)->P4(); }
+        else if(object->IsA() == Electron::Class()) 
+		{ momentum += ((Electron*) object)->P4(); }
+        else if(object->IsA() == Photon::Class()) 
+		{ momentum += ((Photon*) object)->P4(); }
+	//particles.push_back(jet->Constituents.At(j));
+      particles.push_back(momentum); some++;
+      //std::cout<<"the hardest core! "<<momentum.Pt()<<std::endl;
+      } // close for jet constituents
+  if(some>0) {
+  //std::cout<<"testing tag"<<std::endl;
+  fastjet::PseudoJet teste = particles[0];
+  //std::cout<<"the hardest core! "<<teste<<std::endl;
+  //fastjet::Selector jet_selector = fastjet::SelectorPtMin(MINPTJET) && fastjet::SelectorAbsRapMax(rapmax);
+  //fastjet::JetDefinition akt(antikt_algorithm, jetR);
+  //fastjet::ClusterSequence cs_akt(particles, akt);
+  //std::vector<PseudoJet> jets_akt;
+  //jets_akt = sorted_by_pt(jet_selector(cs_akt.inclusive_jets()));
+  // jet definition for substructure
+  fastjet::JetDefinition CA10(fastjet::cambridge_algorithm, Rsb);
+  // first recluster with some large CA (needed for mass-drop)
+  fastjet::ClusterSequence cs_tmp(particles, CA10);
+  // next get hardest jet
+  std::vector<fastjet::PseudoJet> ca_jet;
+  ca_jet = fastjet::sorted_by_pt(cs_tmp.inclusive_jets()); // find the cores
+  //if(ca_jet[0].pt()>0)std::cout<<"the hardest core! "<<ca_jet[0].pt()<<std::endl;
+  // now run mass drop tagger / compare the hardest core with the rest of the jet
+  fastjet::MassDropTagger md_tagger(mu, ycut); // define the cut on mass drop
+	// mu: ratio in between mass of cores, symetric splitting
+  fastjet::PseudoJet tagged_jet  = md_tagger(ca_jet)[0]; // save to check if survives mass drop .. different !
+  //tagged_jet = md_tagger(ca_jet);
+  if(tagged_jet.m() > 110) {std::cout<<"tag!"<<std::endl; return true;} else return false;
+  // Filter definition to improve mass resolution // after
+  //Filter filter(JetDefinition(cambridge_algorithm, Rfilt), SelectorNHardest(n_subjet));
+  //JetDefinition akt(antikt_algorithm, jetR);
+  //ClusterSequence cs_akt(particles, akt);
+  //
+  } else return false;
+  
+  // by now we will have only resolved analysis
+  
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -704,114 +786,68 @@ bool findleptons( TClonesArray *branchMissingET, TClonesArray *branchElectron,TC
 } // end findlepton
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool findjets(TClonesArray *branchJet,ExRootTreeReader* treeReader, 
-		bool doHbbselection, int & countJets, int & counttags, std::vector<int> & tagentry,
-		std::vector<TLorentzVector> & Jets){ 
+bool fill_gen_var(TClonesArray *branchParticle){//, std::vector<int> & jetflavour){
 
-   /////////////
-  Jet *jet; // P4 returns a TLorentzVector
-  //---- at least 4 jets with pt>MINPTJET GeV 
-  // loop in all jets
-  for(i = 0; i < branchJet->GetEntriesFast(); i++) {
-   jet = (Jet*) branchJet->At(i);
-   TLorentzVector jetP4 = jet->P4();
-   // save jets if baseline cuts
-   if ( jet->PT > MINPTJET 
-	&& ((!doHbbselection ) ||  doHbbselection )){ // && !isThisJetALepton(&jetP4, &l1, &l2)
-		countJets++; 
-		//double Px=jetP4.Px(),Py=jetP4.Py(),Pz=jetP4.Pz(),E=jetP4.E();
-		Jets.push_back(jetP4);
-		//std::cout<<"jet px! "<<Px<<std::endl;
-	}
-  // among all jets does it have sub?
-  bool tagged = istagged(jet);
-  if(tagged) {counttags++, tagentry.push_back(i);}
-  // if is tagged keep it
-//    //cout << tagged_jet.m() << endl;
-//    //if  {
-//    tagged_jets.push_back(tagged_jet); // mass drop found
-//    tagged_jets_index.push_back(i); // identify the fat jet
-  } // close for each jet
-  //if (Jets[0].Pt() < MINPTJET) std::cout << "We have a problem; countJets = " << countJets 
-   //				<< "; ijet = " << ijet << " and jet4.Pt() = " << jet4.Pt() << std::endl; 
-  std::cout<<"number of jets "<<countJets<<std::endl;
-  std::cout<<"number tags "<<counttags<<std::endl;
-  Njets = countJets;
-  Ntags = counttags;
-  //if ((!doHbbselection && countJets > 2) || (doHbbselection && countJets > 3)){
-  // shrink to account substructure   
-  return false;
-} // end findjets
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-/////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-bool istagged(Jet *jet){
-  TObject *object;
-  TLorentzVector momentum;
-  //Jet *jet;
-  // check constituents
-  std::cout<<jet->Constituents.GetEntriesFast()<<std::endl;
-  int some =0;
-  vector<fastjet::PseudoJet> particles;
-      for(int j = 0; j < jet->Constituents.GetEntriesFast(); ++j){
-	//jet = jetentry;
-	momentum.SetPxPyPzE(0.0, 0.0, 0.0, 0.0);
-	//particles[j].SetPxPyPzE(0.0, 0.0, 0.0, 0.0);
-        object = jet->Constituents.At(j);
-//	TLorentzVector* blabla = (TLorentzVector*) ((GenParticle*) object)->P4();
-	//double px = blabla->Pt();//, py = blabla.Py(), pz = blabla.Pz(),pe = blabla.E();
-	//std::cout<<"Entered the loop "<<std::endl;
-	//particles.push_back(fastjet::PseudoJet());
-	//jetP4 = jet->Constituents.At(j)->P4();
-        // Check if the constituent are accessible
-        if(object == 0) {continue;} 
-        if(object->IsA() == GenParticle::Class()) 
-		{momentum += ((GenParticle*) object)->P4(); }
-        else if(object->IsA() == Track::Class())
-		{momentum += ((Track*) object)->P4(); } 
-        else if(object->IsA() == Tower::Class()) 
-		{momentum += ((Tower*) object)->P4(); }
-        else if(object->IsA() == Muon::Class()) 
-		{ momentum += ((Muon*) object)->P4(); }
-        else if(object->IsA() == Electron::Class()) 
-		{ momentum += ((Electron*) object)->P4(); }
-        else if(object->IsA() == Photon::Class()) 
-		{ momentum += ((Photon*) object)->P4(); }
-	//particles.push_back(jet->Constituents.At(j));
-      particles.push_back(momentum); some++;
-      //std::cout<<"the hardest core! "<<momentum.Pt()<<std::endl;
-      } // close for jet constituents
-  if(some>0) {
-  //std::cout<<"testing tag"<<std::endl;
-  fastjet::PseudoJet teste = particles[0];
-  //std::cout<<"the hardest core! "<<teste<<std::endl;
-  //fastjet::Selector jet_selector = fastjet::SelectorPtMin(MINPTJET) && fastjet::SelectorAbsRapMax(rapmax);
-  //fastjet::JetDefinition akt(antikt_algorithm, jetR);
-  //fastjet::ClusterSequence cs_akt(particles, akt);
-  //std::vector<PseudoJet> jets_akt;
-  //jets_akt = sorted_by_pt(jet_selector(cs_akt.inclusive_jets()));
-  // jet definition for substructure
-  fastjet::JetDefinition CA10(fastjet::cambridge_algorithm, Rsb);
-  // first recluster with some large CA (needed for mass-drop)
-  fastjet::ClusterSequence cs_tmp(particles, CA10);
-  // next get hardest jet
-  std::vector<fastjet::PseudoJet> ca_jet;
-  ca_jet = fastjet::sorted_by_pt(cs_tmp.inclusive_jets()); // find the cores
-  //if(ca_jet[0].pt()>0)std::cout<<"the hardest core! "<<ca_jet[0].pt()<<std::endl;
-  // now run mass drop tagger / compare the hardest core with the rest of the jet
-  fastjet::MassDropTagger md_tagger(mu, ycut); // define the cut on mass drop
-	// mu: ratio in between mass of cores, symetric splitting
-  fastjet::PseudoJet tagged_jet  = md_tagger(ca_jet)[0]; // save to check if survives mass drop .. different !
-  //tagged_jet = md_tagger(ca_jet);
-  if(tagged_jet.m() > 110) {std::cout<<"tag!"<<std::endl; return true;} 
-  // Filter definition to improve mass resolution // after
-  //Filter filter(JetDefinition(cambridge_algorithm, Rfilt), SelectorNHardest(n_subjet));
-  //JetDefinition akt(antikt_algorithm, jetR);
-  //ClusterSequence cs_akt(particles, akt);
-  //
-  }
-  
-  // by now we will have only resolved analysis
-  return false;
+// return a vector with jet flavours
+TLorentzVector gen_met_vector;
+int nH = 0;
+for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
+    GenParticle* particle = (GenParticle*) branchParticle->At(iPart);
+    int pdgCode = TMath::Abs(particle->PID);
+    int IsPU = particle->IsPU;
+    int status = particle->Status;
+    //
+    if (IsPU == 0  &&  pdgCode == 35) { //--- 35 = "modified Higgs" (the "25" one is the one decaying into 2b")
+     gen_hww_pt  = particle->P4().Pt(); 
+     gen_hww_phi = particle->P4().Phi(); 
+     gen_hww_eta = particle->P4().Eta(); 
+     nH++;
+     }
+    if (IsPU == 0  &&  pdgCode == 25) { //--- the "25" higgs is the one decaying into 2b"
+     gen_hbb_pt  = particle->P4().Pt(); 
+     gen_hbb_phi = particle->P4().Phi(); 
+     gen_hbb_eta = particle->P4().Eta(); 
+     gen_hbb_mass= particle->P4().M();
+     nH++;
+     }     
+     // vbf jets
+     if (IsPU == 0 && status == 3 && 
+	(pdgCode == 1 || pdgCode == 2 || pdgCode == 3 || pdgCode == 4 
+	|| pdgCode == -1 || pdgCode == -2 || pdgCode == -3 || pdgCode == -4) ) {
+     gen_vbf_pt  = particle->P4().Pt(); 
+     gen_vbf_phi = particle->P4().Phi(); 
+     gen_vbf_eta = particle->P4().Eta(); 
+     } 
+     //
+    if (IsPU == 0 && status == 3 && (pdgCode == 12 || pdgCode == 14 || pdgCode == 16) ) {
+     gen_met_vector = gen_met_vector + particle->P4();
+/*
+          if (particle->M1 != -1) std::cout << " particle->M1 = " << particle->M1 << std::endl;
+          if (particle->M2 != -1) std::cout << " particle->M2 = " << particle->M2 << std::endl;
+          if (particle->D1 != -1) std::cout << " particle->D1 = " << particle->D1 << std::endl;
+          if (particle->D2 != -1) std::cout << " particle->D2 = " << particle->D2 << std::endl;
+  */   
+         //h ->  W W -> lvlv
+          if (particle->M1 != -1) {
+           GenParticle* possibleW = (GenParticle*) (branchParticle->At(particle->M1));    
+           if (possibleW  && TMath::Abs(possibleW->PID) == 24 ) {
+            GenParticle* possibleH = (GenParticle*) (branchParticle->At(possibleW->M1));
+            if (possibleH && possibleH->PID == 25  ) {
+             gen_met_vector = gen_met_vector + particle->P4();
+            }
+           }
+          }
+     
+    }
+
+
+    }
+
+   gen_pfmet = gen_met_vector.Pt();
+   gen_pfmez = gen_met_vector.Pz();
+   gen_mvv = gen_met_vector.M();
+
+return false;
 }
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -919,5 +955,13 @@ bool isThisJetALepton(TLorentzVector* jet, TLorentzVector* l1, TLorentzVector* l
  outtree->Branch("gen_vbf_phi", &gen_vbf_phi, "gen_vbf_phi/F");
  outtree->Branch("gen_vbf_eta", &gen_vbf_eta,  "gen_vbf_eta/F");
 
+ outtree->Branch("vbf_genB", &vbf_genB, "vbf_genB/F");
+ outtree->Branch("vbf_btagged", &vbf_btagged,  "vbf_btagged/F");
+ outtree->Branch("vbf_m", &vbf_m, "vbf_m/F");
+ outtree->Branch("vbf_delta_eta", &vbf_delta_eta,  "vbf_delta_eta/F");
+ outtree->Branch("vbf_delta_R", &vbf_delta_R,  "vbf_delta_R/F");
+ outtree->Branch("vbf_pt1", &vbf_pt1,  "vbf_pt1/F");
+ outtree->Branch("vbf_pt2", &vbf_pt2,  "vbf_pt2/F");
+ 
   return 0;
 }
