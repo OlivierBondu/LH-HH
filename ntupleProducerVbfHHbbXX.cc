@@ -6,7 +6,7 @@
 /*******************************************************************************/
 /* to run
  make ntupleProducerVbfHHbbXX.exe
- ./ntupleProducerVbfHHbbXX.exe -t test -i GluGluToHHTo2B2G_M-125_8TeV_madgraph_v2_DEL_v03.root -o testout.root
+ ./ntupleProducerVbfHHbbXX.exe -t test -i teste4b.root -o testout.root
 ******************************************************************************/
 #include <iostream>
 #include <fstream>
@@ -157,7 +157,7 @@ int main (int argc, char **argv) {
  std::cout << "** Chain contains " << allEntries << " events" << std::endl;
  //return 0;
  // Loop over all events
- for(entry = 0; entry < allEntries; entry++) {
+ for(entry = 0; entry < 1; entry++) {
   // Load selected branches with data from specified event
   treeReader->ReadEntry(entry);
   // fill gen variables for the two higgses -- no cut at all
@@ -361,6 +361,7 @@ bool findjets(TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower,
    double masse=jet->Mass;
    //std::cout<<"quadrimomenta "<<" "<<pts<<" "<<etas<<" "<<phis<<" "<<masse<<" invariant mass "<< TMath::Sqrt(2*pts*pts*(TMath::CosH(etas)-TMath::Cos(phis)))<<std::endl;
    TLorentzVector jetP4; //= jet->P4(); //SetPtEtaPhiM(pt,eta,phi,m)
+   TObject *object; int m1,m2; // to look for gen particles
    jetP4.SetPtEtaPhiM(pts,etas,phis,masse);
    // save jets if baseline cuts
    // Sqrt(2*pt^2(Cosh(Eta)-Cos(Phi)))
@@ -369,7 +370,12 @@ bool findjets(TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower,
 		countJets++; 
 		//double Px=jetP4.Px(),Py=jetP4.Py(),Pz=jetP4.Pz(),E=jetP4.E();
 		Jets.push_back(jetP4);
-		//std::cout<<"jet px! "<<Px<<std::endl;
+		  for(int j = 0; j < jet->Particles.GetEntriesFast(); ++j){
+		     object = jet->Particles.At(j);
+                     if(object->IsA() == GenParticle::Class()) 
+		{m1= ((GenParticle*) object)->PID; m2= ((GenParticle*) object)->M2; }
+                     std::cout<<"M1: "<<m1<<std::endl;
+                  }
 		//int IsPU = jet->IsPU;
 		//return also a vector of PID
 		//if (IsPU==0) 
@@ -794,32 +800,40 @@ bool fill_gen_var(TClonesArray *branchParticle){//, std::vector<int> & jetflavou
 TLorentzVector gen_met_vector;
 std::vector<TLorentzVector> genVBF; int counter=0;
 //TLorentzVecto  jetP4 = jet->P4();
-int nH = 0;
+int nH = 0, nb=0;
 for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
     GenParticle* particle = (GenParticle*) branchParticle->At(iPart);
     int pdgCode = TMath::Abs(particle->PID);
     int IsPU = particle->IsPU;
     int status = particle->Status;
     //
-    if (IsPU == 0  &&  pdgCode == 35) { //--- 35 = "modified Higgs" (the "25" one is the one decaying into 2b")
+    if (IsPU == 0 && particle->M1 ==0 &&  pdgCode == 35) { //--- 35 = "modified Higgs" (the "25" one is the one decaying into 2b")
      gen_hww_pt  = particle->P4().Pt(); 
      gen_hww_phi = particle->P4().Phi(); 
      gen_hww_eta = particle->P4().Eta(); 
-     nH++; std::cout<< " a false Higgs!!!! "<< status<<std::endl;
+     nH++; 
+     //std::cout << " False Higgs - M1: "<< particle->M1<<" M2: "<< particle->M2<<" D1: "<< particle->D1<<" D2: "<< particle->D2<<std::endl;
      }
-    if (IsPU == 0  &&  pdgCode == 25) { //--- the "25" higgs is the one decaying into 2b"
+    if (IsPU == 0 && particle->M1 ==0 && pdgCode == 25) { //--- the "25" higgs is the one decaying into 2b"
      gen_hbb_pt  = particle->P4().Pt(); 
-     gen_hbb_phi = particle->P4().Phi(); 
+     gen_hbb_phi = particle->P4().Phi(); //&& particle->M1 ==0  
      gen_hbb_eta = particle->P4().Eta(); 
      gen_hbb_mass= particle->P4().M();
-     nH++;std::cout << " a Higgs!!!! "<<status<<std::endl;
+     nH++;
+     //std::cout << " Higgs - M1: "<< particle->M1<<" M2: "<< particle->M2<<" D1: "<< particle->D1<<" D2: "<< particle->D2<<std::endl;
      }     
      // vbf jets
-     if (IsPU == 0 && status == 3 && 
+     if (IsPU == 0 && particle->M1 ==0 &&
 	(pdgCode == 1 || pdgCode == 2 || pdgCode == 3 || pdgCode == 4 
 	|| pdgCode == -1 || pdgCode == -2 || pdgCode == -3 || pdgCode == -4 || pdgCode == 21) ) {
         genVBF.push_back(particle->P4()); counter++;
+        //std::cout << " VBF - M1: "<< particle->M1<<" M2: "<< particle->M2<<" D1: "<< particle->D1<<" D2: "<< particle->D2<<std::endl;
      } 
+    // any higgs decayed with pythia is not hard process
+    //if (IsPU == 0 && (pdgCode == 5 || pdgCode == -5)) { //--- the "25" higgs is the one decaying into 2b"
+     //nb++;
+     //std::cout << " b's - M1: "<< particle->M1<<" M2: "<< particle->M2<<" D1: "<< particle->D1<<" D2: "<< particle->D2<<std::endl;
+     //} 
      //
     if (IsPU == 0 && status == 3 && (pdgCode == 12 || pdgCode == 14 || pdgCode == 16) ) {
      gen_met_vector = gen_met_vector + particle->P4();
@@ -851,6 +865,7 @@ for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
    // gen vbf
    std::cout << " gen level light quarks/gluons "<< counter<<std::endl;
    std::cout << " number of higgses "<< nH<<std::endl;
+   //std::cout << " number of b's "<< nb<<std::endl;
    gen_vbf_m = counter; 
 //   gen_vbf_pt1 = genVBF[0].Pt(); 
 //   gen_vbf_pt2 = genVBF[1].Pt(); 
