@@ -110,13 +110,28 @@
  float xhh_p_ww_phi;
  float xhh_p_ww_m;
 
- float Njets;
- float Ntags;
+ int Njets;
+ int Ntags;
+ int Nbtags;
  
+ int NgenVBF;
  float gen_vbf_m; 
- float gen_vbf_pt; 
- float gen_vbf_phi; 
- float gen_vbf_eta;
+ float gen_vbf_m1;
+ float gen_vbf_m2;  
+ float gen_vbf_pt1; 
+ float gen_vbf_pt2; 
+ float gen_vbf_Deta;
+ float gen_vbf_DR;
+
+ float vbf_m; 
+ float vbf_delta_eta;
+ float vbf_delta_R;
+ float vbf_pt1;
+ float vbf_pt2;
+
+ float vbf_genB; 
+ int vbf_btagged; 
+ float vbf_fattagged; 
  
  GenParticle *particle;
  Electron *electron;
