@@ -128,10 +128,12 @@
  float vbf_delta_R;
  float vbf_pt1;
  float vbf_pt2;
+ float vbf_m1;
+ float vbf_m2;
 
  float vbf_genB; 
  int vbf_btagged; 
- float vbf_fattagged; 
+ int vbf_fattagged; 
  
  GenParticle *particle;
  Electron *electron;
