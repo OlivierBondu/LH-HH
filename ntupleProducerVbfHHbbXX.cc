@@ -285,11 +285,12 @@ bool findVBFgen(std::vector<int> & vbfJets, std::vector<TLorentzVector> Jets, st
   double etaVBF = TMath::Abs((Jets[vbfJets[0]]-Jets[vbfJets[1]]).Eta());
   if( a1[i1] > HTVBF && etaVBF > DeltayVBF ){
   // how much VBF tags are btagged
-  int countb=0;
     std::cout<<"hi VBF jets really are !!!! "<<vbfJets[0]<<" "<<vbfJets[1]<<std::endl;
     vbf_btagged=JetsBtag[vbfJets[0]]+JetsBtag[vbfJets[1]];
     vbf_pt1 = Jets[vbfJets[0]].Pt();
     vbf_pt2 = Jets[vbfJets[1]].Pt();
+    vbf_m1 = Jets[vbfJets[0]].M();
+    vbf_m2 = Jets[vbfJets[1]].M();
     vbf_m=a1[i1]; 
     vbf_delta_eta = etaVBF; 
     //double DR = Jets[vbfJets[0]].DeltaR(Jets[vbfJets[1]]);
@@ -906,12 +907,13 @@ for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
    NgenVBF = counter;
    if (counter>1){
      gen_vbf_DR = genVBF[0].DeltaR(genVBF[1]);
-     gen_vbf_m = (genVBF[0]+genVBF[1]).M(); 
-     gen_vbf_m1 = genVBF[0].M(); 
+     gen_vbf_m = (genVBF[0]+genVBF[1]).M();
+     float m1 = genVBF[0].M();
+     gen_vbf_m1 = m1; 
      gen_vbf_m2 = genVBF[1].M(); 
      gen_vbf_pt1 = genVBF[0].Pt(); 
      gen_vbf_pt2 = genVBF[1].Pt(); 
-     gen_vbf_Deta = abs((genVBF[0]-genVBF[1]).Eta());   
+     gen_vbf_Deta = abs(genVBF[0].Eta()-genVBF[1].Eta());   
    }
    //std::cout << " number of b's "<< nb<<std::endl;
 return false;
@@ -1029,12 +1031,13 @@ bool isThisJetALepton(TLorentzVector* jet, TLorentzVector* l1, TLorentzVector* l
 
  outtree->Branch("vbf_genB", &vbf_genB, "vbf_genB/F");
  outtree->Branch("vbf_btagged", &vbf_btagged,  "vbf_btagged/I");
- outtree->Branch("vbf_fattagged", &vbf_fattagged,  "vbf_fattagged/F");
+ outtree->Branch("vbf_fattagged", &vbf_fattagged,  "vbf_fattagged/I");
  outtree->Branch("vbf_m", &vbf_m, "vbf_m/F");
  outtree->Branch("vbf_delta_eta", &vbf_delta_eta,  "vbf_delta_eta/F");
  outtree->Branch("vbf_delta_R", &vbf_delta_R,  "vbf_delta_R/F");
  outtree->Branch("vbf_pt1", &vbf_pt1,  "vbf_pt1/F");
  outtree->Branch("vbf_pt2", &vbf_pt2,  "vbf_pt2/F"); //
- 
+ outtree->Branch("vbf_m1", &vbf_m1,  "vbf_m1/F");
+ outtree->Branch("vbf_m2", &vbf_m2,  "vbf_m2/F"); //
   return 0;
 }
