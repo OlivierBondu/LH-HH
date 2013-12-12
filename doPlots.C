@@ -74,7 +74,7 @@
  const char* lege[nmass]={"250 GeV"};
  //for (int k=0; k<nmass; k++) channel[k] = Form("Control_shower_%d.root", k);
 
- int nplots =81;
+ int nplots =85;
  TLegend *leg = new TLegend(0.7,0.80,0.95,0.90);
    leg->SetTextSize(0.03146853);
    leg->SetLineColor(1);
@@ -94,6 +94,7 @@
  "gen_hbb_eta.png",
  "gen_hbb_e.png",
  "gen_hbb_mass.png",
+ "gen_hh_mass.png",
  "bjetpt1.png",
  "bjetpt2.png",
  "bjeteta1.png",
@@ -111,6 +112,7 @@
  "gen_hww_pt.png",
  "gen_hww_phi.png",
  "gen_hww_eta.png",
+ "gen_hww_mass.png",
  "hw1_pt.png",
  "hw2_pt.png",
  "hw1_eta.png",
@@ -162,6 +164,8 @@
  "vbf_delta_R.png",
  "vbf_pt1.png",
  "vbf_pt2.png",
+ "vbf_m1.png",
+ "vbf_m2.png",
  "vbf_genB.png",
  "vbf_btagged.png",
  "vbf_fattagged.png"
@@ -178,6 +182,7 @@
  "gen_hbb_eta",
  "gen_hbb_e",
  "gen_hbb_mass",
+ "gen_hh_mass",
  "bjetpt1",
  "bjetpt2",
  "bjeteta1",
@@ -195,6 +200,7 @@
  "gen_hww_pt",
  "gen_hww_phi",
  "gen_hww_eta",
+ "gen_hww_mass",
  "hw1_pt",
  "hw2_pt",
  "hw1_eta",
@@ -246,6 +252,8 @@
  "vbf_delta_R",
  "vbf_pt1",
  "vbf_pt2",
+ "vbf_m1",
+ "vbf_m2",
  "vbf_genB",
  "vbf_btagged",
  "vbf_fattagged"
@@ -260,10 +268,34 @@ TTree* teste = (TTree* ) file->Get("test;1");
 cout<<teste->GetEntriesFast()<<endl;
 //TBranch *branch = teste.GetBranch("vbf_m");
 //TGraph *gr = new TGraph(branch->GetSelectedRows(),branch->GetV2(), branch->GetV1());
-for(int i=0;i<81;i++) {
-	leg->SetHeader("no cut 2362 events");
+// Float_t gen_vbf_DR;
+
+//teste->SetBranchAddress("gen_vbf_DR",&gen_vbf_DR);
+//TBranch *brep = teste->GetBranch("gen_vbf_DR");
+
+//Int_t nevent = teste->GetEntries();
+//Int_t nselected = 0;
+//Float_t repold = -1;
+//Float_t *gX  = new Float_t[nevent];
+//Float_t *grep = new Float_t[nevent];
+cout<<"GetSelectedRows: "<<teste->GetSelectedRows()<<endl;
+
+for(int i=1;i<85;i++) {
+	leg->SetHeader("260 GeV graviton - no cuts");
+//	for (Int_t j=0; j<nevent; j++) {
+//	  brep->GetEvent(j);    // read branch 'rep' only
+//	  teste->GetEvent(j);  //read complete accepted event in memory. This
+//	  gX[j]  = j;
+//	  grep[j] = gen_vbf_DR;	  
+//	}
+//	TGraph *graph = new TGraph(nevent, gX, grep);
+//	graph->Draw("ac");
+
 //	branch->Draw();
 	teste->Draw(plots[i]);
+        //teste->Draw(plots[i-1], "","same");
+//        TGraph *gr = new TGraph(teste->GetSelectedRows(),teste->GetV1(),teste->GetV1());
+//        gr->Draw("ap"); //draw graph in current pad
 	leg->Draw("same");
 //	teste->Draw("gen_vbf_DR,same");
 	PT_HAT->SaveAs(namplots[i]);
