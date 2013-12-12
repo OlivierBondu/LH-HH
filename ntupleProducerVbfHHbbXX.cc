@@ -236,10 +236,10 @@ bool findVBFcuts(std::vector<int> & vbfJets, std::vector<TLorentzVector> Jets, s
   vbfJets.push_back(jetn1[i1]);vbfJets.push_back(jetn2[i1]);
   // it is VBF tagged
   // apply the VBF cuts
-  double etaVBF = TMath::Abs((Jets[vbfJets[0]]-Jets[vbfJets[1]]).Eta());
+  double etaVBF = abs(Jets[vbfJets[0]].Eta()-Jets[vbfJets[1]].Eta());
   if( a1[i1] > HTVBF && etaVBF > DeltayVBF ){
   // how much VBF tags are btagged
-  int countb=0;
+//  int countb=0;
 //    std::cout<<"hi VBF jets really are !!!! "<<vbfJets[0]<<" "<<vbfJets[1]<<std::endl;
     vbf_btagged=JetsBtag[vbfJets[0]]+JetsBtag[vbfJets[1]];
     vbf_pt1 = Jets[vbfJets[0]].Pt();
@@ -282,8 +282,10 @@ bool findVBFgen(std::vector<int> & vbfJets, std::vector<TLorentzVector> Jets, st
   vbfJets.push_back(jetn1[i1]);vbfJets.push_back(jetn2[i1]);
   // it is VBF tagged
   // apply the VBF cuts
-  double etaVBF = TMath::Abs((Jets[vbfJets[0]]-Jets[vbfJets[1]]).Eta());
-  if( a1[i1] > HTVBF && etaVBF > DeltayVBF ){
+  double etaVBF = abs(Jets[vbfJets[0]].Eta()-Jets[vbfJets[1]].Eta());
+  if( 1>0 
+	 // && a1[i1] > HTVBF && etaVBF > DeltayVBF 
+     ){
   // how much VBF tags are btagged
     std::cout<<"hi VBF jets really are !!!! "<<vbfJets[0]<<" "<<vbfJets[1]<<std::endl;
     vbf_btagged=JetsBtag[vbfJets[0]]+JetsBtag[vbfJets[1]];
@@ -435,9 +437,9 @@ bool findjets(TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower,
   } // close for each jet
   //if (Jets[0].Pt() < MINPTJET) std::cout << "We have a problem; countJets = " << countJets 
    //				<< "; ijet = " << ijet << " and jet4.Pt() = " << jet4.Pt() << std::endl; 
-  //std::cout<<"number of jets "<<countJets<<std::endl;
+  std::cout<<"number of jets "<<countJets<<" "<< branchJet->GetEntriesFast()<<std::endl;
   //std::cout<<"number tags "<<counttags<<std::endl;
-  Njets = countJets;
+  Njets = branchJet->GetEntriesFast();//countJets;
   Ntags = counttags;
   Nbtags = countb;
   //if ((!doHbbselection && countJets > 2) || (doHbbselection && countJets > 3)){
@@ -837,30 +839,25 @@ bool fill_gen_var(TClonesArray *branchParticle){//, std::vector<int> & jetflavou
 
 // return a vector with jet flavours
 TLorentzVector gen_met_vector;
-std::vector<TLorentzVector> genVBF; int counter=0;
+std::vector<TLorentzVector> genVBF, genHH; int counter=0;
 //TLorentzVecto  jetP4 = jet->P4();
 int nH = 0, nb=0;
 for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
     GenParticle* particle = (GenParticle*) branchParticle->At(iPart);
-    int pdgCode = TMath::Abs(particle->PID);
+    int pdgCode = abs(particle->PID);
     int IsPU = particle->IsPU;
     int status = particle->Status;
     //
     if (IsPU == 0 && particle->M1 ==0 &&  pdgCode == 35) { 
 	//--- 35 = "modified Higgs" 
-     gen_hww_pt  = particle->P4().Pt(); 
-     gen_hww_phi = particle->P4().Phi(); 
-     gen_hww_eta = particle->P4().Eta(); 
      nH++; 
+     genHH.push_back(particle->P4());
      //std::cout << " False Higgs - M1: "<< particle->M1<<" M2: "<< particle->M2<<" D1: "<< particle->D1<<" D2: "<< particle->D2<<std::endl;
      }
     if (IsPU == 0 && particle->M1 ==0 && pdgCode == 25) { 
 	//--- the "25" higgs is the one decaying into 2b"
-     gen_hbb_pt  = particle->P4().Pt(); 
-     gen_hbb_phi = particle->P4().Phi(); //&& particle->M1 ==0  
-     gen_hbb_eta = particle->P4().Eta(); 
-     gen_hbb_mass= particle->P4().M();
      nH++;
+     genHH.push_back(particle->P4());
      //std::cout << " Higgs - M1: "<< particle->M1<<" M2: "<< particle->M2<<" D1: "<< particle->D1<<" D2: "<< particle->D2<<std::endl;
      }     
      // vbf jets
@@ -888,7 +885,7 @@ for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
          //h ->  W W -> lvlv
           if (particle->M1 != -1) {
            GenParticle* possibleW = (GenParticle*) (branchParticle->At(particle->M1));    
-           if (possibleW  && TMath::Abs(possibleW->PID) == 24 ) {
+           if (possibleW  && abs(possibleW->PID) == 24 ) {
             GenParticle* possibleH = (GenParticle*) (branchParticle->At(possibleW->M1));
             if (possibleH && possibleH->PID == 25  ) {
              gen_met_vector = gen_met_vector + particle->P4();
@@ -902,9 +899,19 @@ for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
    gen_pfmez = gen_met_vector.Pz();
    gen_mvv = gen_met_vector.M();
    // gen vbf
-   //std::cout << " gen level light quarks/gluons "<< counter<<std::endl;
-   //std::cout << " number of higgses "<< nH<<std::endl;
+   std::cout << " gen level light quarks/gluons "<< counter<<std::endl;
+   std::cout << " number of higgses "<< nH<<std::endl;
    NgenVBF = counter;
+   gen_hh_mass = (genHH[0]+genHH[1]).M();   
+     gen_hww_pt  = genHH[0].Pt(); 
+     gen_hww_phi = genHH[0].Phi(); 
+     gen_hww_eta = genHH[0].Eta(); 
+     gen_hww_mass = genHH[0].M(); 
+     //
+     gen_hbb_pt  = genHH[1].Pt(); 
+     gen_hbb_phi = genHH[1].Phi(); //&& particle->M1 ==0  
+     gen_hbb_eta = genHH[1].Eta(); 
+     gen_hbb_mass= genHH[1].M();
    if (counter>1){
      gen_vbf_DR = genVBF[0].DeltaR(genVBF[1]);
      gen_vbf_m = (genVBF[0]+genVBF[1]).M();
@@ -956,6 +963,7 @@ bool isThisJetALepton(TLorentzVector* jet, TLorentzVector* l1, TLorentzVector* l
  outtree->Branch("gen_hbb_eta", &gen_hbb_eta, "gen_hbb_eta/F");
  outtree->Branch("gen_hbb_e", &gen_hbb_e, "gen_hbb_e/F");
  outtree->Branch("gen_hbb_mass", &gen_hbb_mass, "gen_hbb_mass/F");
+ outtree->Branch("gen_hh_mass", &gen_hh_mass, "gen_hh_mass/F");
  // H1 constituents
  outtree->Branch("bjeteta1", &bjeteta1, "bjeteta1/F");
  outtree->Branch("bjeteta2", &bjeteta2, "bjeteta2/F");
@@ -976,6 +984,7 @@ bool isThisJetALepton(TLorentzVector* jet, TLorentzVector* l1, TLorentzVector* l
  outtree->Branch("gen_hww_pt", &gen_hww_pt, "gen_hww_pt/F");
  outtree->Branch("gen_hww_phi", &gen_hww_phi, "gen_hww_phi/F");
  outtree->Branch("gen_hww_eta", &gen_hww_eta, "gen_hww_eta/F");
+ outtree->Branch("gen_hww_mass", &gen_hww_mass, "gen_hww_mass/F");
  //
  outtree->Branch("hw1_pt", &hw1_pt, "hw1_pt/F");
  outtree->Branch("hw1_eta", &hw1_eta, "hw1_eta/F");
