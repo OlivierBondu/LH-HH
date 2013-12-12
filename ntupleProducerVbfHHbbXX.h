@@ -41,6 +41,7 @@
  float gen_hbb_eta;
  float gen_hbb_e;
  float gen_hbb_mass;
+ float gen_hh_mass;
 
  float bjetpt1;
  float bjetpt2;
@@ -58,6 +59,7 @@
  float hww_mt;
  float hww_pt;
  float hww_phi;
+ float hww_mass;
  float hww_etap; //---- ambiguity on the sign
  float hww_etam;
  
@@ -65,6 +67,7 @@
  float gen_hww_pt;
  float gen_hww_phi;
  float gen_hww_eta;
+ float gen_hww_mass;
 
  float hw1_pt;
  float hw2_pt;
