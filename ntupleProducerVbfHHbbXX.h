@@ -123,8 +123,15 @@
  float gen_vbf_m2;  
  float gen_vbf_pt1; 
  float gen_vbf_pt2; 
+ float gen_vbf_eta1;
+ float gen_vbf_eta2;
  float gen_vbf_Deta;
  float gen_vbf_DR;
+
+ float gen_vbf1H1;
+ float gen_vbf1H2;
+ float gen_vbf2H1;
+ float gen_vbf2H2;
 
  float vbf_m; 
  float vbf_delta_eta;
