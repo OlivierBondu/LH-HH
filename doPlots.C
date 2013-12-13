@@ -1,5 +1,5 @@
 {
- //  /////////////////////////////////////////////
+  /////////////////////////////////////////////
   // here we put the options for ploting
   TStyle *defaultStyle = new TStyle("defaultStyle","Default Style");
   defaultStyle->SetOptStat(0000);
