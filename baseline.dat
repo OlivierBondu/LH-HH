@@ -1,0 +1,5 @@
+float HiggsMass = 125.;
+// lepton - jet isolation
+double DRmax = 0.2;
+// Jets
+float MINPTJET = 15.;  
