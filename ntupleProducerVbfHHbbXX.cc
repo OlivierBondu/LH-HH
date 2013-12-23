@@ -921,6 +921,7 @@ for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
      gen_hww_phi = genHH[0].Phi(); 
      gen_hww_eta = genHH[0].Eta(); 
      gen_hww_mass = genHH[0].M(); 
+     gen_total_mass = (genHH[0]+genHH[1] +genVBF[0]+genVBF[1]).M(); 
      //
      gen_hbb_pt  = genHH[1].Pt(); 
      gen_hbb_phi = genHH[1].Phi(); //&& particle->M1 ==0  
@@ -1018,6 +1019,7 @@ bool isThisJetALepton(TLorentzVector* jet, TLorentzVector* l1, TLorentzVector* l
  outtree->Branch("gen_hww_phi", &gen_hww_phi, "gen_hww_phi/F");
  outtree->Branch("gen_hww_eta", &gen_hww_eta, "gen_hww_eta/F");
  outtree->Branch("gen_hww_mass", &gen_hww_mass, "gen_hww_mass/F");
+ outtree->Branch("gen_total_mass", &gen_total_mass, "gen_total_mass/F");
  //
  outtree->Branch("hw1_pt", &hw1_pt, "hw1_pt/F");
  outtree->Branch("hw1_eta", &hw1_eta, "hw1_eta/F");
