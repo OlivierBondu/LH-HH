@@ -68,6 +68,7 @@
  float gen_hww_phi;
  float gen_hww_eta;
  float gen_hww_mass;
+ float gen_total_mass;
 
  float hw1_pt;
  float hw2_pt;
