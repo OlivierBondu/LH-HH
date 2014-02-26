@@ -850,7 +850,7 @@ for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
      genHH.push_back(particle->P4());
      //std::cout << " False Higgs - M1: "<< particle->M1<<" M2: "<< particle->M2<<" D1: "<< particle->D1<<" D2: "<< particle->D2<<std::endl;
      }
-    if (IsPU == 0 && particle->M1 ==0 && pdgCode == 25) { 
+    if (IsPU == 0  && pdgCode == 25) { 
 	//--- the "25" higgs is the one decaying into 2b"
      nH++;
      genHH.push_back(particle->P4());
@@ -898,7 +898,7 @@ for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
    std::cout << " gen level light quarks/gluons "<< counter<<std::endl;
    std::cout << " number of higgses "<< nH<<std::endl;
    NgenVBF = counter;
-   if (counter>1){
+   if (counter>1 & nH>1){
      gen_vbf_DR = genVBF[0].DeltaR(genVBF[1]);
      //
      gen_vbf1H1 = genHH[0].DeltaR(genVBF[0]);
