@@ -21,23 +21,26 @@ Next you need to get / compile Delphes 3.0.12 (as of 2013-03-25)
         cd Delphes-3.0.12
         make -j 8
 
-Once Delphes is setup, we want to get some realistic detector parameters. Some CMS parameters can be found [here](https://twiki.cern.ch/twiki/bin/viewauth/CMS/HiggsWG/Phase2UpgradeStudies#CMS_detector_configuration_files). We'll show here how to get 'Phase I' configuration.
-        
-        # Get CMS configuration cards
-        mkdir CMS_cards
-        wget -P CMS_cards --no-check-certificate https://raw.githubusercontent.com/sethzenz/Delphes/master/Cards/CMS_Phase_I_NoPileUp.tcl
-        wget -P CMS_cards --no-check-certificate https://raw.githubusercontent.com/sethzenz/Delphes/master/Cards/CMS_Phase_I_50PileUp.tcl
-        wget -P CMS_cards --no-check-certificate https://raw.githubusercontent.com/sethzenz/Delphes/master/Cards/CMS_Phase_I_140PileUp.tcl
+Once Delphes is setup, we want to get some realistic detector parameters. Some sets can be found from the Snowmass exercise 2013 [here](http://www.snowmass2013.org/tiki-index.php?page=Energy_Frontier_FastSimulation) and referencable from [arXiv:1309.1057](http://arxiv.org/abs/1309.1057). Below how to get the cards themselves
+
+        # Get detector configuration cards
+        mkdir Snowmass_cards
+        wget -O Snowmass_cards/delphes_card_Snowmass_NoPileUp.tcl http://cvs.web.cern.ch/cvs/cgi-bin/viewcvs.cgi/UserCode/spadhi/Snowmass/Cards/delphes_card_Snowmass_NoPileUp.tcl?view=co
+        wget -O Snowmass_cards/delphes_card_Snowmass_50PileUp.tcl http://cvs.web.cern.ch/cvs/cgi-bin/viewcvs.cgi/UserCode/spadhi/Snowmass/Cards/delphes_card_Snowmass_50PileUp.tcl?view=co
+        wget -O Snowmass_cards/delphes_card_Snowmass_140PileUp.tcl http://cvs.web.cern.ch/cvs/cgi-bin/viewcvs.cgi/UserCode/spadhi/Snowmass/Cards/delphes_card_Snowmass_140PileUp.tcl?view=co
+        wget -O Snowmass_cards/delphes_card_Snowmass_VLHCPileUp.tcl http://cvs.web.cern.ch/cvs/cgi-bin/viewcvs.cgi/UserCode/spadhi/Snowmass/Cards/delphes_card_Snowmass_VLHCPileUp.tcl?view=co
         # Correct some 3.0.10 to 3.0.12 Delphes versioning
-        sed -i -e 's/AdjacencyCut 2\.0/AdjacencyCut 2/g' CMS_cards/CMS_Phase_I_NoPileUp.tcl
+        sed -i -e 's/AdjacencyCut 2\.0/AdjacencyCut 2/g' Snowmass_cards/delphes_card_Snowmass_NoPileUp.tcl
         # Get pileup files
-        wget http://red-gridftp11.unl.edu/Snowmass/MinBias100K_14TeV.pileup -O MinBias.pileup
+        mkdir Snowmass_pileup
+        wget -P Snowmass_pileup http://red-gridftp11.unl.edu/Snowmass/MinBias100K_14TeV.pileup
+        wget -P Snowmass_pileup http://red-gridftp11.unl.edu/Snowmass/MinBias100K_13TeV.pileup
+        wget -P Snowmass_pileup http://red-gridftp11.unl.edu/Snowmass/MinBias100K_33TeV.pileup
         
 Now everything should be setup for proper running, you can test it by doing the following
 
-        rm test.root; xrd eoscms cat /eos/cms/store/cmst3/user/obondu/HH/signal/13TeV/MGraviton_900_HHtobbbb.hepmc.gz | gunzip | ./DelphesHepMC CMS_cards/CMS_Phase_I_NoPileUp.tcl test.root
-        rm test.root; xrd eoscms cat /eos/cms/store/cmst3/user/obondu/HH/signal/13TeV/MGraviton_900_HHtobbbb.hepmc.gz | gunzip | ./DelphesHepMC CMS_cards/CMS_Phase_I_50PileUp.tcl test.root
-        rm test.root; xrd eoscms cat /eos/cms/store/cmst3/user/obondu/HH/signal/13TeV/MGraviton_900_HHtobbbb.hepmc.gz | gunzip | ./DelphesHepMC CMS_cards/CMS_Phase_I_140PileUp.tcl test.root
+        rm test.root; xrd eoscms cat /eos/cms/store/cmst3/user/obondu/HH/signal/13TeV/MGraviton_900_HHtobbbb.hepmc.gz | gunzip | ./DelphesHepMC Snowmass_cards/delphes_card_Snowmass_NoPileUp.tcl test.root
+        rm test.root; xrd eoscms cat /eos/cms/store/cmst3/user/obondu/HH/signal/13TeV/MGraviton_900_HHtobbbb.hepmc.gz | gunzip | ./DelphesHepMC Snowmass_cards/delphes_card_Snowmass_50PileUp.tcl test.root
 
 ### Run Delphes through lxbatch
 
