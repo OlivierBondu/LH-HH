@@ -1,4 +1,5 @@
 #!/bin/bash
+alias eos='/afs/cern.ch/project/eos/installation/0.3.15/bin/eos.select'
 
 LHDIR="/afs/cern.ch/work/o/obondu/LesHouches2013/"
 DELPHES="Delphes-3.0.12"
@@ -7,9 +8,10 @@ INPUT_FILE="/eos/cms/store/cmst3/user/obondu/HH/signal/13TeV/MGraviton_900_HHtob
 CONFIGURATION_FILE="Snowmass_cards/delphes_card_Snowmass_50PileUp.tcl"
 PILEUP_FILE="Snowmass_pileup/MinBias100K_13TeV.pileup"
 OUTPUT_NAME="test"
+EOS_OUTDIR="/eos/cms/store/cmst3/user/obondu/HH/delphes/"
 ifile=0
 
-while getopts l:d:C:i:c:p:o:v: opt 
+while getopts l:d:C:i:c:p:o:O:v: opt 
 do
     case "${opt}" in 
     #l is LHDIR
@@ -35,6 +37,10 @@ do
     #p is pileup file
         p)
             PILEUP_FILE=${OPTARG}
+            ;;
+    #O is eos outdir
+        O)
+            EOS_OUTDIR=${OPTARG}
             ;;
     #o is output name
         o)
@@ -65,10 +71,11 @@ echo "INPUT_FILE= ${INPUT_FILE}"
 echo "CONFIGURATION_FILE= ${CONFIGURATION_FILE}"
 echo "PILEUP_FILE= ${PILEUP_FILE}"
 echo "OUTPUT_NAME= ${OUTPUT_NAME}"
-
+echo "ifile= ${ifile}"
+echo "EOS_OUTDIR= ${EOS_OUTDIR}"
 
 echo ${PWD}
-ls
+ls -l
 
 # Get what Delphes needs to run
 cp -v  ${LHDIR}/${DELPHES}/DelphesHepMC .
@@ -81,15 +88,16 @@ eval `scram runtime -sh`
 cd ${WORKDIR}
 
 echo ${PWD}
-ls
+ls -l
 
 set -x
 # Run the actual thing
 xrd eoscms cat ${INPUT_FILE} | gunzip | ./DelphesHepMC ${CONFIGURATION_FILE} ${OUTPUT_FILE}
 
-# Copy the stuff on eos
-# TODO
-# cp -v ${OUTPUT_FILE} ${EOS_OUTPUT}
+echo ${PWD}
+ls -l
 
+# Copy the stuff on eos
+eos cp ${OUTPUT_FILE} ${EOS_OUTDIR} 
 
 
