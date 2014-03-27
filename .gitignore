@@ -24,3 +24,7 @@ classes
 
 # editor temp files
 .*.swp
+
+# lxbatch stuff
+LSFJOB_*
+core.*
