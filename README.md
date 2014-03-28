@@ -44,7 +44,15 @@ Now everything should be setup for proper running, you can test it by doing the 
 
 ### Run Delphes through lxbatch
 
-A couple of utilities are here to run on lxbatch
+First, `source setup_afs.sh` should be run to setup the proper running environement.
+
+A couple of utilities are here to run on lxbatch, namely `runDelphes.sh` and `do_submitDelphes.py`:
+* `runDelphes.sh` will at its core be running the command `DelphesHepMC`:  copying the stuff needed from afs, copying the result to eos
+* `do_submitDelphes.py` will be submitting to lxbatch a bunch of jobs running `runDelphes.sh`
+
+So actual submission of the jobs is done by
+
+        ./do_submitDelphes.py
 
 ## Setup the analysis
 
