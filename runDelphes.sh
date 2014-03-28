@@ -1,5 +1,5 @@
 #!/bin/bash
-alias eos='/afs/cern.ch/project/eos/installation/0.3.15/bin/eos.select'
+eos='/afs/cern.ch/project/eos/installation/0.3.15/bin/eos.select'
 
 LHDIR="/afs/cern.ch/work/o/obondu/LesHouches2013/"
 DELPHES="Delphes-3.0.12"
@@ -98,6 +98,6 @@ echo ${PWD}
 ls -l
 
 # Copy the stuff on eos
-eos cp ${OUTPUT_FILE} ${EOS_OUTDIR} 
+${eos} cp ${OUTPUT_FILE} ${EOS_OUTDIR} 
 
 
