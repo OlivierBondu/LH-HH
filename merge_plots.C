@@ -66,9 +66,9 @@
  //int mass[nmass]= {300,500,600,700,800,900,1500,2500,3000};
 
  const char* channel[nmass]={
- "bulk_graviton/CMS_MG260.root",
- "bulk_graviton/kgraviton_cg0_0137.root",
- "bulk_graviton/kgraviton_cg1.root",
+ "MGraviton__500_HHtobbbb_140PileUp.root",
+ "MGraviton__500_HHtobbbb_50pileup.root",
+ "MGraviton__500_HHtobbbb_NoPileUp.root",
  "bulk_graviton/kgraviton_cg0.root",
  "bulk_graviton/CMS_MG450.root",
  "bulk_graviton/CMS_MG550.root",
@@ -262,7 +262,7 @@ for(int i=0;i<22;i++) { // 0-22 /// 22 -46 /// 46 - 57
 */
 //	branch->Draw();
    TFile *file[8];
-   for(int j=0;j<4;j++) { // files
+   for(int j=0;j<3;j++) { // files
 	file[j] = TFile::Open(channel[j]);
 	//TTree *MyTree tes; channel[0]->GetObject("test",MyTree);
 	TTree* teste = (TTree* ) file[j]->Get("test;1");	

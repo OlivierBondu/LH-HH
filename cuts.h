@@ -1,5 +1,5 @@
 // here goes the analysis cuts
-double tolerance = 30.15;
+double tolerance = 300.15;
 float HiggsMass = 125.;
 double deltaEtaHH = 1.3;
 // VBF cuts

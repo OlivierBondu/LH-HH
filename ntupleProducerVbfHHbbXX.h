@@ -20,14 +20,14 @@
 #include "fastjet/tools/MassDropTagger.hh"
 #include "fastjet/PseudoJet.hh"
 
- float jetpt1;
- float jetpt2;
+// float jetpt1;
+// float jetpt2;
  
- float jeteta1;
- float jeteta2;
+// float jeteta1;
+// float jeteta2;
  
- float mjj;
- float mbb;
+// float mjj;
+// float mbb;
  
  //---- h>bb
  float hbb_pt;
@@ -43,18 +43,27 @@
  float gen_hbb_mass;
  float gen_hh_mass;
 
- float bjetpt1;
- float bjetpt2;
+ float bjetpt1h1;
+ float bjetpt2h1;
+ float bjeteta1h1;
+ float bjeteta2h1;
+ float bjetphi1h1;
+ float bjetphi2h1;
+ float bjetm1h1;
+ float bjetm2h1;
 
- float bjeteta1;
- float bjeteta2;
-
- float bjetphi1;
- float bjetphi2;
-
- float bjete1;
- float bjete2;
+ float bjetpt1h2;
+ float bjetpt2h2;
+ float bjeteta1h2;
+ float bjeteta2h2;
+ float bjetphi1h2;
+ float bjetphi2h2;
+ float bjetm1h2;
+ float bjetm2h2;
  
+ float bjetDetah1;
+ float bjetDetah2;
+
  //---- h>WW
  float hww_mt;
  float hww_pt;

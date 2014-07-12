@@ -43,21 +43,18 @@
 using namespace std;
 //using namespace fastjet;
 typedef fastjet::JetDefinition::DefaultRecombiner DefRecomb;
-
+//
 struct myclassMin {
  bool operator() (std::pair<float, std::pair <int,Int_t> > i, std::pair<float, std::pair <int,Int_t> > j) { 
   return (i.first < j.first);
  }
 } myObjMin;
-
-
+//
 struct myclassMax {
  bool operator() (std::pair<float, std::pair <int,Int_t> > i, std::pair<float, std::pair <int,Int_t> > j) { 
   return (i.first > j.first);
  }
 } myObjMax;
-
-
 ///////////////////////////////////////////////////
 int fourb();
 int dobranches(TTree* outtree);
@@ -85,11 +82,9 @@ bool analyse_2b2w(bool findlepton, TLorentzVector hbb, TLorentzVector & l1, TLor
 bool VBFcuts(TLorentzVector* jet1,TLorentzVector* jet2);
 //bool aabb analyse_2b2a();
 ////////////////////////////////////////////////////
-
-  TLorentzVector pho1, pho2; // save to compare to jets
-
+TLorentzVector pho1, pho2; // save to compare to jets
 namespace po = boost::program_options;
-
+////////////////////////////////////////////////////
 int main (int argc, char **argv) {
  int r = fourb();
  // declare arguments
@@ -121,7 +116,6 @@ int main (int argc, char **argv) {
     catch(...) {std::cerr << "Exception of unknown type!\n";}
  // end of argument parsing
  //################################################
-
  // check if at least one selection is turned on
  if( (!doHwwselection) && (!doHggselection) && (!doHbbselection) ) 
    {std::cerr << std::endl << "ERROR: Exactly one Higgs selection must be turned on, exiting" << std::endl; return 1;} 
@@ -163,18 +157,20 @@ int main (int argc, char **argv) {
   // fill gen variables for the two higgses -- no cut at all
   bool gen = fill_gen_var(branchParticle);
   // analysis itself -- it alredy fill the variables
-  //TLorentzVector pho1, pho2; // save to compare to jets
+  // TLorentzVector pho1, pho2; // save to compare to jets
   TLorentzVector l1, l2; // save to compare to jets
   std::vector<TLorentzVector> Jets; // all the jets
   // find, tag, return all jets
   int countJets = 0, counttags=0; std::vector<int> tagentry;
   std::vector<int> JetsBtag;
-  bool findjet = findjets(branchEFlowTrack, branchEFlowTower, branchEFlowMuon, branchJet, treeReader, doHbbselection,countJets, counttags,tagentry,Jets,JetsBtag); 
+  bool findjet = 
+         findjets(branchEFlowTrack, branchEFlowTower, branchEFlowMuon, branchJet, treeReader, 
+         doHbbselection,countJets, counttags,tagentry,Jets,JetsBtag); 
   bool findlepton = findleptons(branchMissingET,branchElectron,branchMuon,treeReader, doHwwselection,l1,l2); 
   int findphoton = findphotons(branchPhoton,treeReader, doHggselection); 
   // select the VBF jets 
-  std::vector<int> vbfJets;  //vector to keep the entries of Jets that are VBF tagged
-//  bool isVBF = findVBFcuts(vbfJets,Jets,JetsBtag);
+  std::vector<int> vbfJets; //vector to keep the entries of Jets that are VBF tagged
+  //  bool isVBF = findVBFcuts(vbfJets,Jets,JetsBtag);
   bool isVBF = findVBFgen(vbfJets,Jets,JetsBtag,tagentry);
   // EW objects first
   // analyse
@@ -283,11 +279,11 @@ bool findVBFgen(std::vector<int> & vbfJets, std::vector<TLorentzVector> Jets, st
   // it is VBF tagged
   // apply the VBF cuts
   double etaVBF = abs(Jets[vbfJets[0]].Eta()-Jets[vbfJets[1]].Eta());
-  if( 1>0 
+  if(1>0 
 	 // && a1[i1] > HTVBF && etaVBF > DeltayVBF 
      ){
-  // how much VBF tags are btagged
-    std::cout<<"hi VBF jets really are !!!! "<<vbfJets[0]<<" "<<vbfJets[1]<<std::endl;
+    // how much VBF tags are btagged
+    //std::cout<<"hi VBF jets really are !!!! "<<vbfJets[0]<<" "<<vbfJets[1]<<std::endl;
     vbf_btagged=JetsBtag[vbfJets[0]]+JetsBtag[vbfJets[1]];
     vbf_pt1 = Jets[vbfJets[0]].Pt();
     vbf_pt2 = Jets[vbfJets[1]].Pt();
@@ -308,19 +304,82 @@ bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry,
 	std::vector<TLorentzVector> Jets, std::vector<int> vbfJets ){
  // search for tags, if the tags are not among the VBF tagged, save the bjets
  int realtag=0, vbffat=0;
-
  // the vbf jets are already non fat and non b
  for(int i=0; i<Jets.size();i++) 
     if(tagentry[i] ==1) {realtag++;} else vbffat++;
  //std::cout<<"real tags "<<realtag<<std::endl;
-
  vbf_fattagged=vbffat;
+ float Hmin = HiggsMass*(1-tolerance);
+ float Hmax = HiggsMass*(1+tolerance);
+ TLorentzVector H1, H2; 
  //std::vector<int> bJets; // keep the non vbf jets
-
  // now we separate analysis
- if(realtag==0 && countJets>5) {
+ if(realtag>1  && countJets>3 ) { // close if 1 tag && countJets < 5
+    std::cout<<"2 tag! "<<std::endl; int hig=0;
+    for(int nj1=0; nj1< countJets; nj1++) 
+      if(nj1 != vbfJets[0] && nj1 != vbfJets[1] && tagentry[nj1] ==1) 
+        if(hig==0) {H1 = Jets[nj1]; hig++;} else if(hig==1) {H2 = Jets[nj1];} 
+    //std::cout<<H1.M()<<" "<<H2.M()<<std::endl; 
+    if( 
+       //massDiff < tolerance && //rapDiff < deltaEtaHH &&
+       (H1.M() > Hmin && H1.M() < Hmax) &&
+       (H2.M() > Hmin && H2.M() < Hmax)
+    ){
+     // fill Higgs variables
+     //std::cout<<"getting there"<<std::endl; 
+     hbb_pt = H1.Pt(); 
+     hbb_eta = H1.Eta();
+     hbb_phi = H1.Phi();
+     hbb_mass = H1.M();
+     // second higgs reco
+     hww_pt = H2.Pt();
+     hww_phi = H2.Phi();
+     hww_etap = H2.Eta(); 
+     hww_etam = H2.Eta();
+     hww_mt = H2.M(); /// mass in case of HbbHbb 
+     // resonance reco
+     xhh_m_ww_pt = (H1+H2).Pt();
+     xhh_m_ww_eta = (H1+H2).Phi();
+     xhh_m_ww_phi = (H1+H2).Eta();
+     xhh_m_ww_m = (H1+H2).M();
+    return false;
+    } // else return false; // close higgs cuts
+  } else if(realtag==1 && countJets>4 ) { // close if 2 tag && countJets < 7
+    std::cout<<"1 tag! "<<std::endl;
+     // fill Higgs variables
+     for(int nj1=0; nj1< countJets; nj1++)  
+     if((nj1 != vbfJets[0] && nj1 != vbfJets[1])) if(tagentry[nj1] ==1) {H1 = Jets[nj1];}
+       else {H2+=Jets[nj1];} // to take the fat higgs as first
+     std::cout<<H1.M()<<" "<<H2.M()<<std::endl; 
+    double massDiff = abs(2*(H1.M() - H2.M())/(H1.M() + H2.M()));
+    double rapDiff = abs(H1.Eta() - H2.Eta());
+    if( 
+       //massDiff < tolerance && //rapDiff < deltaEtaHH &&
+       (H1.M() > Hmin && H1.M() < Hmax) &&
+       (H2.M() > Hmin && H2.M() < Hmax)
+    ){
+     // fill Higgs variables
+     hbb_pt = H1.Pt(); 
+     hbb_eta = H1.Eta();
+     hbb_phi = H1.Phi();
+     hbb_mass = H1.M();
+     // second higgs reco
+     hww_pt = H2.Pt();
+     hww_phi = H2.Phi();
+     hww_etap = H2.Eta(); 
+     hww_etam = H2.Eta();
+     hww_mt = H2.M(); /// mass in case of HbbHbb 
+     // resonance reco
+     xhh_m_ww_pt = (H1+H2).Pt();
+     xhh_m_ww_eta = (H1+H2).Phi();
+     xhh_m_ww_phi = (H1+H2).Eta();
+     xhh_m_ww_m = (H1+H2).M();
+    return false;
+    } // else return false; // close higgs cuts
+  }
+ if(countJets>5 ) { // realtag==0 && && countJets < 9)
    // pair the jets by the minimum invariant mass difference
-   std::vector<double> a1; //const int nmax=BJets.size();
+   std::vector<double> a1, a2; //const int nmax=BJets.size();
    std::cout<<"resolved! "<<std::endl;
    std::vector< int > jetn1, jetn2,jetn3, jetn4; // to keep the pairs
    for(int nj1=0; nj1< countJets; nj1++)  if(nj1 != vbfJets[0] && nj1 != vbfJets[1]) 
@@ -331,50 +390,67 @@ bool analyse_4b(int countJets, int counttags, std::vector<int> tagentry,
 	   double invmassA =  (Jets[nj1]+Jets[nj2]).M();
 	   double invmassB =  (Jets[nj3]+Jets[nj4]).M();
 	   a1.push_back((invmassA-invmassB)*(invmassA-invmassB)); 
+	   a2.push_back((invmassA-125.)*(invmassA-125.)+(invmassB-125.)*(invmassB-125.));   
 	   jetn1.push_back(nj1);jetn2.push_back(nj2); // we also what to keep the nj...
-	   jetn3.push_back(nj3);jetn4.push_back(nj4);
-           
+	   jetn3.push_back(nj3);jetn4.push_back(nj4);          
     } // loop on jets
     int minM;
     //Find the minumum value of the vector (iterator version)
-    minM = TMath::LocMin(a1.size(), &a1[0]);
-    std::cout<<"hi, the jets pairs are !!!! "<<jetn1[minM]<<jetn2[minM]<<" "
-	<<jetn3[minM]<<jetn4[minM]<<std::endl;
+    minM = TMath::LocMin(a2.size(), &a2[0]);
+    //std::cout<<"hi, the jets pairs are !!!! "<<jetn1[minM]<<jetn2[minM]<<" "
+	//<<jetn3[minM]<<jetn4[minM]<<std::endl;
     // higgs cuts
-    TLorentzVector H1 = Jets[jetn1[minM]]+Jets[jetn2[minM]];
-    TLorentzVector H2 = Jets[jetn3[minM]]+Jets[jetn4[minM]];
+    H1 = Jets[jetn1[minM]]+Jets[jetn2[minM]];
+    H2 = Jets[jetn3[minM]]+Jets[jetn4[minM]];
     double massDiff = abs(2*(H1.M() - H2.M())/(H1.M() + H2.M()));
     double rapDiff = abs(H1.Eta() - H2.Eta());
-    float Hmin = HiggsMass*(1-tolerance);
-    float Hmax = HiggsMass*(1+tolerance);
     if( 
-       massDiff < tolerance && //rapDiff < deltaEtaHH &&
+       //massDiff < tolerance && //rapDiff < deltaEtaHH &&
        (H1.M() > Hmin && H1.M() < Hmax) &&
        (H2.M() > Hmin && H2.M() < Hmax)
     ){
-     std::cout<<"getting there"<<std::endl; 
-     // fill Higgs variables
-     hbb_pt = H1.Pt();
+     //std::cout<<"resolved"<<std::endl; 
+     hbb_pt = H1.Pt(); 
      hbb_eta = H1.Eta();
      hbb_phi = H1.Phi();
      hbb_mass = H1.M();
-     //
+     // second higgs reco
      hww_pt = H2.Pt();
      hww_phi = H2.Phi();
      hww_etap = H2.Eta(); 
      hww_etam = H2.Eta();
      hww_mt = H2.M(); /// mass in case of HbbHbb 
-     // do variables to mtot
+     // resonance reco
+     xhh_m_ww_pt = (H1+H2).Pt();
+     xhh_m_ww_eta = (H1+H2).Phi();
+     xhh_m_ww_phi = (H1+H2).Eta();
+     xhh_m_ww_m = (H1+H2).M();
+     // the individual jets
+     bjetpt1h1 = Jets[jetn1[minM]].Pt();
+     bjetpt2h1 = Jets[jetn2[minM]].Pt();
+     bjeteta1h1 = Jets[jetn1[minM]].Eta();
+     bjeteta2h1 = Jets[jetn2[minM]].Eta();
+     bjetphi1h1 = Jets[jetn1[minM]].Phi();
+     bjetphi2h1 = Jets[jetn2[minM]].Phi();
+     bjetm1h1 = Jets[jetn1[minM]].M();
+     bjetm2h1 = Jets[jetn2[minM]].M();
+     //
+     bjetpt1h2 = Jets[jetn3[minM]].Pt();
+     bjetpt2h2 = Jets[jetn4[minM]].Pt();
+     bjeteta1h2 = Jets[jetn3[minM]].Eta();
+     bjeteta2h2 = Jets[jetn4[minM]].Eta();
+     bjetphi1h2 = Jets[jetn3[minM]].Phi();
+     bjetphi2h2 = Jets[jetn4[minM]].Phi();
+     bjetm1h2 = Jets[jetn3[minM]].M();
+     bjetm2h2 = Jets[jetn4[minM]].M();
+     //
+     bjetDetah1 = abs(Jets[jetn1[minM]].Eta()-Jets[jetn2[minM]].Eta());
+     bjetDetah2 = abs(Jets[jetn3[minM]].Eta()-Jets[jetn4[minM]].Eta());
     return true;
-    } else return true; // close higgs cuts
-  //
-  } else if(realtag==1 && countJets>2) { // close if resolved
-    std::cout<<"1 tag! "<<std::endl;
-    return true; 
-  } else if(realtag>1  && countJets>3) { // close if 1 tag
-    std::cout<<"2 tag! "<<std::endl;
-    return true; 
-  } else return true; // close if 2 tags
+    } 
+  //else return true; // close higgs cuts
+  ////////////////////////////////////////////////////////
+  }  else if(countJets<4){return false;} else return false; 
 } // close 4b analysis
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -383,9 +459,7 @@ bool findjets(TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower,
 		TClonesArray *branchJet,ExRootTreeReader* treeReader, 
 		bool doHbbselection, int & countJets, int & counttags, std::vector<int> & tagentry,
 		std::vector<TLorentzVector> & Jets, std::vector<int> & JetsBtag){ 
-  /////////////
   Jet *jet; // P4 returns a TLorentzVector
-  //---- at least 4 jets with pt>MINPTJET GeV 
   // loop in all jets -- plots distances
    int countb=0;
   for(i = 0; i < branchJet->GetEntriesFast(); i++) {
@@ -398,8 +472,6 @@ bool findjets(TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower,
    TLorentzVector jetP4; //= jet->P4(); //SetPtEtaPhiM(pt,eta,phi,m)
    TObject *object; int m1,m2; // to look for gen particles
    jetP4.SetPtEtaPhiM(pts,etas,phis,masse);
-   // save jets if baseline cuts
-   // Sqrt(2*pt^2(Cosh(Eta)-Cos(Phi)))
    if ( jet->PT > MINPTJET 
 	&& ((!doHbbselection ) ||  doHbbselection )){ // && !isThisJetALepton(&jetP4, &l1, &l2)
 		countJets++; 
@@ -414,22 +486,12 @@ bool findjets(TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower,
                      std::cout<<"M1: "<<m1<<std::endl;
                   }
 		*/ 
-		//int IsPU = jet->IsPU;
-		//return also a vector of PID
-		//if (IsPU==0) 
-		//TRefArray* test = jet->Particles;
 		JetsBtag.push_back(jet->BTag ); //else JetsFlavour.push_back(99);
 		countb = countb + jet->BTag;
+                // among all jets does it have sub?
+                bool tagged = istagged(jet, branchEFlowTrack, branchEFlowTower, branchEFlowMuon);
+                if(tagged) {counttags++, tagentry.push_back(1);} else tagentry.push_back(0); 
 	}
-  // among all jets does it have sub?
-  bool tagged = istagged(jet, branchEFlowTrack, branchEFlowTower, branchEFlowMuon);
-  if(tagged) {counttags++, tagentry.push_back(1);} else tagentry.push_back(0); 
-//  if(masse>100) {counttags++, tagentry.push_back(1);} else tagentry.push_back(0); // naive tag
-  // if is tagged keep it
-//    //cout << tagged_jet.m() << endl;
-//    //if  {
-//    tagged_jets.push_back(tagged_jet); // mass drop found
-//    tagged_jets_index.push_back(i); // identify the fat jet
   } // close for each jet
   //if (Jets[0].Pt() < MINPTJET) std::cout << "We have a problem; countJets = " << countJets 
    //				<< "; ijet = " << ijet << " and jet4.Pt() = " << jet4.Pt() << std::endl; 
@@ -445,7 +507,6 @@ bool findjets(TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower,
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 bool istagged(Jet *jet, TClonesArray *branchEFlowTrack, TClonesArray *branchEFlowTower, TClonesArray *branchEFlowMuon ){
-
   TObject *object;
   TLorentzVector momentum;
   //Jet *jet;
@@ -574,24 +635,24 @@ if(countJets>3)  {
   
   //---- save information
   
-  jetpt1 = Jet1.Pt();
-  jetpt2 = Jet2.Pt();
-  bjetpt1 = bJet1.Pt();
-  bjetpt2 = bJet2.Pt();
+  //jetpt1 = Jet1.Pt();
+  //jetpt2 = Jet2.Pt();
+  //bjetpt1 = bJet1.Pt();
+  //bjetpt2 = bJet2.Pt();
 
-  if(jetpt1>0) jeteta1 = Jet1.Eta();
-  if(jetpt1>0) jeteta2 = Jet2.Eta();
-  if(bjetpt1>0) bjeteta1 = bJet1.Eta();
-  if(bjetpt1>0) bjeteta2 = bJet2.Eta();
+  //if(jetpt1>0) jeteta1 = Jet1.Eta();
+  //if(jetpt1>0) jeteta2 = Jet2.Eta();
+  //if(bjetpt1>0) bjeteta1 = bJet1.Eta();
+  //if(bjetpt1>0) bjeteta2 = bJet2.Eta();
   
-  if(bjetpt1>0){
+  if(1>0){//bjetpt1>0){
   //std::cout<<"hi!!!! "<<bJet1.Pt()<<std::endl;
   // save the higgs
   TLorentzVector hbb;
   hbb = bJet1 + bJet2;
   
-  mjj = (Jet1 +  Jet2 ).M();
-  mbb = (bJet1 + bJet2).M();
+  //mjj = (Jet1 +  Jet2 ).M();
+  //mbb = (bJet1 + bJet2).M();
   
   //---- h>bb
   hbb_pt = (bJet1 +  bJet2 ).Pt();
@@ -850,7 +911,7 @@ for(int iPart = 0; iPart < branchParticle->GetEntriesFast(); iPart++) {
      genHH.push_back(particle->P4());
      //std::cout << " False Higgs - M1: "<< particle->M1<<" M2: "<< particle->M2<<" D1: "<< particle->D1<<" D2: "<< particle->D2<<std::endl;
      }
-    if (IsPU == 0  && pdgCode == 25) { 
+    if (IsPU == 0 && particle->M1 ==0 && pdgCode == 25) { 
 	//--- the "25" higgs is the one decaying into 2b"
      nH++;
      genHH.push_back(particle->P4());
@@ -978,13 +1039,13 @@ bool isThisJetALepton(TLorentzVector* jet, TLorentzVector* l1, TLorentzVector* l
  int dobranches(TTree* outtree){
  // outtree->Branch("KindSelection",  &KindSelection,  "KindSelection/F");
  // the 2 vbf jets
- outtree->Branch("jetpt1",  &jetpt1,  "jetpt1/F");
- outtree->Branch("jetpt2",  &jetpt2,  "jetpt2/F");
- outtree->Branch("jeteta1",  &jeteta1,  "jeteta1/F");
- outtree->Branch("jeteta2",  &jeteta2,  "jeteta2/F");
+ //outtree->Branch("jetpt1",  &jetpt1,  "jetpt1/F");
+ //outtree->Branch("jetpt2",  &jetpt2,  "jetpt2/F");
+ //outtree->Branch("jeteta1",  &jeteta1,  "jeteta1/F");
+ //outtree->Branch("jeteta2",  &jeteta2,  "jeteta2/F");
  // both candidates invariant mass
- outtree->Branch("mjj", &mjj, "mjj/F");
- outtree->Branch("mbb", &mbb, "mbb/F");
+ //outtree->Branch("mjj", &mjj, "mjj/F");
+ //outtree->Branch("mbb", &mbb, "mbb/F");
  // H1
  outtree->Branch("hbb_pt", &hbb_pt, "hbb_pt/F");
  outtree->Branch("hbb_eta", &hbb_eta, "hbb_eta/F");
@@ -999,14 +1060,26 @@ bool isThisJetALepton(TLorentzVector* jet, TLorentzVector* l1, TLorentzVector* l
  outtree->Branch("gen_hbb_mass", &gen_hbb_mass, "gen_hbb_mass/F");
  outtree->Branch("gen_hh_mass", &gen_hh_mass, "gen_hh_mass/F");
  // H1 constituents
- outtree->Branch("bjeteta1", &bjeteta1, "bjeteta1/F");
- outtree->Branch("bjeteta2", &bjeteta2, "bjeteta2/F");
- outtree->Branch("bjetpt1", &bjetpt1, "bjetpt1/F");
- outtree->Branch("bjetpt2", &bjetpt2, "bjetpt2/F");
- outtree->Branch("bjetphi1", &bjetphi1, "bjetphi1/F");
- outtree->Branch("bjetphi2", &bjetphi2, "bjetphi2/F");
- outtree->Branch("bjete1", &bjetphi1, "bjetphi1/F");
- outtree->Branch("bjete2", &bjetphi2, "bjete2/F");
+ outtree->Branch("bjeteta1h1", &bjeteta1h1, "bjeteta1h1/F");
+ outtree->Branch("bjeteta2h1", &bjeteta2h1, "bjeteta2h1/F");
+ outtree->Branch("bjetpt1h1", &bjetpt1h1, "bjetpt1h1/F");
+ outtree->Branch("bjetpt2h1", &bjetpt2h1, "bjetpt2h1/F");
+ outtree->Branch("bjetphi1h1", &bjetphi1h1, "bjetphi1h1/F");
+ outtree->Branch("bjetphi2h1", &bjetphi2h1, "bjetphi2h1/F");
+ outtree->Branch("bjetm1h1", &bjetphi1h1, "bjetphi1h1/F");
+ outtree->Branch("bjetm2h1", &bjetphi2h1, "bjete2h1/F");
+ // H2 constituents
+ outtree->Branch("bjeteta1h2", &bjeteta1h2, "bjeteta1h2/F");
+ outtree->Branch("bjeteta2h2", &bjeteta2h2, "bjeteta2h2/F");
+ outtree->Branch("bjetpt1h2", &bjetpt1h2, "bjetpt1h2/F");
+ outtree->Branch("bjetpt2h2", &bjetpt2h2, "bjetpt2h2/F");
+ outtree->Branch("bjetphi1h2", &bjetphi1h2, "bjetphi1h2/F");
+ outtree->Branch("bjetphi2h2", &bjetphi2h2, "bjetphi2h2/F");
+ outtree->Branch("bjetm1h2", &bjetphi1h2, "bjetphi1h2/F");
+ outtree->Branch("bjetm2h2", &bjetphi2h2, "bjete2h2/F");
+ //
+ outtree->Branch("bjetDetah1", &bjetDetah1, "bjetDetah1/F");
+ outtree->Branch("bjetDetah2", &bjetDetah2, "bjetDetah2/F");
  // H2
  outtree->Branch("hww_mt", &hww_mt, "hww_mt/F");
  outtree->Branch("hww_pt", &hww_pt, "hww_pt/F");
