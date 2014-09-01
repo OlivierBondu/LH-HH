@@ -27,6 +27,12 @@
 (selector){
   NJetFinder  6  JCUT  0.0  0.1  -1  5.0  5.0
   NJetFinder  2  JCUT  0.0  0.4  -1  5.0
-  DeltaR      93  5  0.4 100;
-  DeltaR      93 -5  0.4 100;
+  DeltaR      93  5  0.1 100;
+  DeltaR      93 -5  0.1 100;
+  Mass        93 93  200 10000;
+  PseudoRapidity  5  -2.5 2.5;
+  PseudoRapidity -5  -2.5 2.5;
+  PT  5 20 1000;
+  PT -5 20 1000;
+  PT  93 20 1000;  
 }(selector)
