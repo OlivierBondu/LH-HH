@@ -1,1 +1,59 @@
 Work in SHERPA-MC-2.1.0
+
+##############################################
+Comments from J. Winter
+
+ Things to notice are: 
+ 
+ (1) the simulation uses massive b quarks right from the hardest level, ie in the MEs, 
+ 
+ (2) for testing purposes, hadronization (FRAGMENTATION=Off;) and underlying event (MI_HANDLER=None;) are switched
+ off (once you convinced yourself that everything is going fine, you can remove these commands, also only then it makes sense to start playing with
+ event output) and (3) the cards are set such that cross section integration will be optimized, so the 6-particle FS require some good CPU
+ time (if you want quick tests in the beginning I suggest to use FINISH_OPTIMIZATION=Off and adjust the "Integration_Error" settings
+ accordingly).
+ 
+ I would also recommend thinking about your selection cuts. As set now they are very loose, so as a result you get large cross sections. If your
+ selection in the end is more restrictive then it'd be more efficient to have more cuts already applied at the generation level.
+################################################
+
+recipe to run Sherpa:
+
+################################################
+to Jets only final states:
+### lxplus6
+wget http://www.hepforge.org/archive/sherpa/SHERPA-MC-2.1.1.tar.gz
+tar -xzf SHERPA-MC-2.1.1.tar.gz
+cd SHERPA-MC-2.1.1
+./configure --with-sqlite3=install --enable-root=/afs/cern.ch/sw/lcg/external/root/5.21.04/slc4_amd64_gcc34/root  --enable-blackhat=/afs/cern.ch/sw/lcg/external/MCGenerators_test/SHERPA-MPI/MCGenerators_lcgcmt67b/blackhat/0.9.9/x86_64-slc6-gcc48-opt/  --enable-gzip   --enable-hepmc2=/afs/cern.ch/sw/lcg/external/MCGenerators_test/SHERPA-MPI/HepMC/2.06.08/x86_64-slc6-gcc48-opt/
+make
+make install
+cd SHERPA-MC-2.1.1/Examples/Jets_at_HadronColliders/LHC_Jets_MEPS ### (or any other sub-directory of Examples)
+cp Your_favorite_Run.dat .
+### (to run local:)
+/$/SHERPA-MC-2.1.0/bin/Sherpa
+### The events will appear in lighter HepMC format: ZZjj.hepmc.gz
+
+################################################
+to final states with Z's:
+### lxplus6
+wget http://www.hepforge.org/archive/sherpa/SHERPA-MC-2.1.1.tar.gz
+tar -xzf SHERPA-MC-2.1.1.tar.gz
+cd SHERPA-MC-2.1.1
+./configure --with-sqlite3=install --enable-root=/afs/cern.ch/sw/lcg/external/root/5.21.04/slc4_amd64_gcc34/root  --enable-blackhat=/afs/cern.ch/sw/lcg/external/MCGenerators_test/SHERPA-MPI/MCGenerators_lcgcmt67b/blackhat/0.9.9/x86_64-slc6-gcc48-opt/  --enable-gzip   --enable-hepmc2=/afs/cern.ch/sw/lcg/external/MCGenerators_test/SHERPA-MPI/HepMC/2.06.08/x86_64-slc6-gcc48-opt/
+make
+make install
+cd SHERPA-MC-2.1.1/Examples/Jets_at_HadronColliders/LHC_Jets_MEPS ### (or any other sub-directory of Examples)
+cp Your_favorite_Run.dat .
+### (to run local:)
+/$/SHERPA-MC-2.1.0/bin/Sherpa
+### (you will have lots of errors of libraries not found --- it is normal)
+./makelibs
+###(do the libraries, and run again)
+/$/SHERPA-MC-2.1.1/bin/Sherpa
+### The events will appear in lighter HepMC format: ZZjj.hepmc.gz
+############################################################
+
+
+
+
